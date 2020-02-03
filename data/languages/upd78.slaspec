@@ -115,6 +115,11 @@ define token data16 (16)
    simm16		= (0,15) signed
 ;
 
+# Working register offset
+define token waAddr (8)
+    waAddr8     = (0,7)
+;
+
 ################################################################
 # Variable tables                                              #
 ################################################################
@@ -172,7 +177,6 @@ macro setAddFlags(op1,op2) {
 }
 
 macro add(op1, op2) {
-    # check_skip();
     setAddFlags(op1, op2);
     op1 = op1 + op2;
     setResultFlags(op1);
@@ -180,7 +184,6 @@ macro add(op1, op2) {
 
 # op1 = op1 + op2 + CY_flag
 macro addCarry(op1, op2) {
-    # check_skip();
     setAddFlags(op1, op2 + $(CY_flag));
     op1 = op1 + op2 + $(CY_flag);
     setResultFlags(op1);
@@ -188,7 +191,6 @@ macro addCarry(op1, op2) {
 
 # op1 = op1 + op2, skip if no carry
 macro addNC(op1, op2) {
-    # check_skip();
     setAddFlags(op1, op2);
     op1 = op1 + op2;
     setResultFlags(op1);
@@ -202,7 +204,6 @@ macro setSubFlags(op1,op2) {
 }
 
 macro subWithBorrow(op1, op2) {
-    # check_skip();
 	local Ccopy = $(CY_flag);
 	local AFmask = -1 >> 4;
 	$(HC_flag) = (((op1 & AFmask) - (op2 & AFmask) - Ccopy) & (AFmask + 1)) != 0;
@@ -214,7 +215,6 @@ macro subWithBorrow(op1, op2) {
 }
 
 macro subNoBorrow(op1, op2) {
-    # check_skip();
     setSubFlags(op1, op2);
     op1 = op1 - op2;
     setResultFlags(op1);
@@ -222,68 +222,58 @@ macro subNoBorrow(op1, op2) {
 }
 
 macro sub(op1, op2) {
-    # check_skip();
     setSubFlags(op1, op2);
     op1 = op1 - op2;
     setResultFlags(op1);
 }
 
 macro and(op1, op2) {
-    # check_skip();
     op1 = op1 & op2;
     setResultFlags(op1);
 }
 
 macro or(op1, op2) {
-    # check_skip();
     op1 = op1 | op2;
     setResultFlags(op1);
 }
 
 macro xor(op1, op2) {
-    # check_skip();
     op1 = op1 ^ op2;
     setResultFlags(op1);
 }
 
 macro greater(op1, op2) {
-    # check_skip();
     setSubFlags(op1, op2 + 1);
     setResultFlags(op1 - op2 - 1);
-    $(SK_flag) = $(CY_flag) != 1;
+    $(SK_flag) = op1 > op2;
 }
 
 macro lesser(op1, op2) {
-    # check_skip();
     setSubFlags(op1, op2);
     setResultFlags(op1 - op2);
-    $(SK_flag) = $(CY_flag);
+    $(SK_flag) = op1 < op2;
 }
 
 macro notEqual(op1, op2) {
-    # check_skip();
     setSubFlags(op1, op2);
     $(Z_flag) = (op1 - op2) == 0;
-    $(SK_flag) = $(Z_flag) == 0;
+    $(SK_flag) = op1 != op2;
 }
 
 macro equal(op1, op2) {
-    # check_skip();
     setSubFlags(op1, op2);
     $(Z_flag) = (op1 == op2);
-    $(SK_flag) = $(Z_flag);
+    $(SK_flag) = op1 == op2;
 }
 
 macro onTest(op1, op2) {
-    # check_skip();
     $(Z_flag) = (op1 & op2) == 0;
-    $(SK_flag) = $(Z_flag) != 1;
+    $(SK_flag) = (op1 & op2) != 1;
 }
 
 macro offTest(op1, op2) {
-    # check_skip();
     $(Z_flag) = (op1 & op2) == 0;
-    $(SK_flag) = $(Z_flag);
+    $(SK_flag) = (op1 & op2) == 0;
 }
 
 macro push16(val16) {
@@ -306,6 +296,32 @@ macro pop8(ret8) {
 	SP = SP + 1;
 }
 
+macro add16(op1, op2) {
+	local AFmask:2 = -1 >> 8;
+	$(HC_flag) = (((op1 & AFmask) + (op2 & AFmask)) & (AFmask + 1)) != 0;
+	$(CY_flag) = carry(op1,op2);
+    op1 = op1 + op2;
+    $(Z_flag) = op1 == 0;
+}
+
+macro sub16(op1, op2) {
+ 	local AFmask = -1 >> 8;
+	$(HC_flag) = (((op1 & AFmask) - (op2 & AFmask)) & (AFmask + 1)) != 0;
+	$(CY_flag) = (op1 < op2);
+    op1 = op1 - op2;
+    $(Z_flag) = op1 == 0;
+}
+
+macro sub16WithBorrow(op1, op2) {
+	local Ccopy:2 = zext($(CY_flag));
+	local AFmask:2 = -1 >> 8;
+	$(HC_flag) = (((op1 & AFmask) - (op2 & AFmask) - Ccopy) & (AFmask + 1)) != 0;
+	$(CY_flag) = op1 < op2;
+	local tempResult = op1 - op2;
+	$(CY_flag) = $(CY_flag) || (tempResult < Ccopy);
+	op1 = tempResult - Ccopy;
+    setResultFlags(op1);
+}
 
 ################################################################
 # Memory addresses and values                                  #
@@ -319,9 +335,9 @@ Addr16: imm16		is imm16									{ export *:1 imm16; }
 # Working register addresses                                   #
 ################################################################
 
-waMem8: (V+imm8)  is V & imm8 {
-    hi:2 = zext(V);
-    ptr:2 = (hi << 8) + imm8;
+waMem8: (V+waAddr8)  is V & waAddr8 {
+    local hi:2 = zext(V);
+    local ptr:2 = (hi << 8) + waAddr8;
     export *:1 ptr;
 }
 
@@ -332,6 +348,7 @@ waMem8: (V+imm8)  is V & imm8 {
 RelAddr6:       loc is jdisp1_0_6           [ loc = inst_next + jdisp1_0_6; ]       { export *:1 loc; }
 RelAddr8_pos:   loc is imm8                 [ loc = inst_next + imm8; ]             { export *:1 loc; }
 RelAddr8_neg:   loc is imm8                 [ loc = inst_next - 256 + imm8; ]       { export *:1 loc; }
+faAddr:         faloc is fah_0_3; imm8      [ faloc = 0x800+(fah_0_3 << 8)+imm8; ]  {export *:1 faloc;}
 
 ################################################################
 # Register pairs and register pair pointers                    #
@@ -428,118 +445,96 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 }
 
 :MOV r1_0_3, A is op3_5=0x3 & r1_0_3 & A {
-    # check_skip();
     r1_0_3 = A;
 }
 
 :MOV A, r1_0_3 is op3_5=0x1 & r1_0_3 & A {
-    # check_skip();
     A = r1_0_3;
 }
 
 :MOV srl_0_5, A is op0_8 = 0x4D & A; op6_2 = 0x3 & srl_0_5 & bit_5=0 {
-    # check_skip();
     srl_0_5 = A;
 }
 
 :MOV cr_0_2, A is op0_8 = 0x4D & A; op6_2 = 0x3 & cr_0_2 & bit_5=1 {
-    # check_skip();
     cr_0_2 = A;
 }
 
 :MOV A, srl_0_5 is op0_8 = 0x4C; op6_2 = 0x3 & srl_0_5 & bit_5=0 & A {
-    # check_skip();
     A = srl_0_5;
 }
 
 :MOV A, cr_0_2 is op0_8 = 0x4C; op6_2 = 0x3 & cr_0_2 & bit_5=1 & A {
-    # check_skip();
     A = cr_0_2;
 }
 
 :MOV r_0_3, Mem8 is op0_8 = 0x70; op3_5 = 0xD & r_0_3; Mem8 {
-    # check_skip();
     r_0_3 = Mem8;
 }
 
 :MOV Mem8, r_0_3 is op0_8 = 0x70; op3_5 = 0xF & r_0_3; Mem8 {
-    # check_skip();
     Mem8 = r_0_3;
 }
 
-:MVI r_0_3, imm8 is op3_5 = 0xd & r_0_3 ; imm8 {
-    # check_skip();
+:MVI r_0_3, imm8 is op3_5 = 0xd & r_0_3; imm8 {
     r_0_3 = imm8;
 }
 
 :MVI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x00 & sr2l_0_3; imm8 {
-    # check_skip();
     sr2l_0_3 = imm8;
 }
 
 :MVI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x10 & sr2h_0_3; imm8 {
-    # check_skip();
     sr2h_0_3 = imm8;
 }
 
 :MVIW waMem8, val8 is op0_8 = 0x71; waMem8; val8 {
-    # check_skip();
     waMem8 = val8;
 }
 
 :MVIX rpa1, imm8 is op2_6 = 0x12 & rpa1; imm8 {
-    # check_skip();
     rpa1 = imm8;
 }
 
-:STAW waMem8 is op0_8 = 0x33; waMem8 {
-    # check_skip();
+:STAW waMem8 is op0_8 = 0x63; waMem8 {
     waMem8 = A;
 }
 
 :LDAW waMem8 is op0_8 = 0x1; waMem8 {
-    # check_skip();
     A = waMem8;
 }
 
 
 :STAX rpa2 is op3_4 = 0x7 & rpa2_0_3 != 0x0 & rpa2 {
-    # check_skip();
     rpa2 = A;
 }
 
 :STAX (DE+imm8) is op0_8 = 0xbb; imm8 & DE {
-    # check_skip();
     ptr = DE + imm8;
     *:1 ptr = A;
 }
 
 :STAX (HL+imm8) is op0_8 = 0xbf; imm8 & HL {
-    # check_skip();
     ptr = HL + imm8;
     *:1 ptr = A;
 }
 
 :LDAX rpa2 is op3_4 = 0x5 & rpa2_0_3 != 0x0 & rpa2 {
-    # check_skip();
     A = rpa2;
 }
 
 :LDAX (DE+imm8) is op0_8 = 0xab; imm8 & DE {
-    # check_skip();
-    ptr = DE + imm8;
+    local ptr = DE + imm8;
     A = *:1 ptr;
 }
 
 :LDAX (HL+imm8) is op0_8 = 0xaf; imm8 & HL {
-    # check_skip();
-    ptr = HL + imm8;
+    local ptr = HL + imm8;
     A = *:1 ptr;
 }
 
 :EXX is op0_8 = 0x11 {
-    # check_skip();
-    tmp:2 = BC;
+    local tmp:2 = BC;
     BC = BC_;
     BC_ = tmp;
     tmp = DE;
@@ -551,8 +546,7 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 }
 
 :EXA is op0_8 = 0x10 {
-    # check_skip();
-    tmp:2 = VA;
+    local tmp:2 = VA;
     VA = VA_;
     VA_ = tmp;
     tmp = EA;
@@ -561,14 +555,12 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 }
 
 :EXH is op0_8 = 0x50 {
-    # check_skip();
-    tmp:2 = HL;
+    local tmp:2 = HL;
     HL = HL_;
     HL_ = tmp;
 }
 
 :BLOCK is op0_8 = 0x31 {
-    # check_skip();
     <loopstart>
     *:1 DE = *:1 HL;
     DE = DE + 1;
@@ -581,120 +573,95 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 # 14.6.2 16-bit data transfer instructions                     #
 ################################################################
 
-# FIXME - Better matching?
 :DMOV rp3, EA is op2_6 = 0x2d & rp3_0_2 != 0x0 & rp3 & EA {
-    # check_skip();
     rp3 = EA;
 }
 
-# FIXME - Better matching?
 :DMOV EA, rp3 is op2_6 = 0x29 & rp3_0_2 != 0x0 & rp3 & EA {
-    # check_skip();
     EA = rp3;
 }
 
 :DMOV sr3_0_1, EA is op0_8 = 0x48; op1_7 = 0x69 & sr3_0_1 & EA {
-    # check_skip();
     sr3_0_1 = EA;
 }
 
 :DMOV EA, sr4_0_1 is op0_8 = 0x48; op1_7 = 0x60 & sr4_0_1 & EA {
-    # check_skip();
     EA = sr4_0_1;
 }
 
 :SBCD Mem16 is op0_8 = 0x70; op0_8 = 0x1e; Mem16 {
-    # check_skip();
     Mem16 = BC;
 }
 
 :SDED Mem16 is op0_8 = 0x70; op0_8 = 0x2e; Mem16 {
-    # check_skip();
     Mem16 = DE;
 }
 
 :SHLD Mem16 is op0_8 = 0x70; op0_8 = 0x3e; Mem16 {
-    # check_skip();
     Mem16 = HL;
 }
 
 :SSPD Mem16 is op0_8 = 0x70; op0_8 = 0x0e; Mem16 {
-    # check_skip();
     Mem16 = SP;
 }
 
-:STAEX rpa3 is op0_8 = 0x48; op4_4 = 0x9 & rpa3 {
-    # check_skip();
+:STEAX rpa3 is op0_8 = 0x48; op4_4 = 0x9 & rpa3 {
     rpa3 = EA;
 }
 
-:STAEX (DE+imm8) is op0_8 = 0x48; op0_8 = 0x9b; imm8 & DE {
-    # check_skip();
+:STEAX (DE+imm8) is op0_8 = 0x48; op0_8 = 0x9b; imm8 & DE {
     ptr = DE + imm8;
     *:2 ptr = EA;
 }
 
-:STAEX (HL+imm8) is op0_8 = 0x48; op0_8 = 0x9f; imm8 & HL {
-    # check_skip();
+:STEAX (HL+imm8) is op0_8 = 0x48; op0_8 = 0x9f; imm8 & HL {
     ptr = HL + imm8;
     *:2 ptr = EA;
 }
 
 :LBCD Mem16 is op0_8 = 0x70; op0_8 = 0x1f; Mem16 {
-    # check_skip();
     BC = Mem16;
 }
 
 :LDED Mem16 is op0_8 = 0x70; op0_8 = 0x2f; Mem16 {
-    # check_skip();
     DE = Mem16;
 }
 
 :LHLD Mem16 is op0_8 = 0x70; op0_8 = 0x3f; Mem16 {
-    # check_skip();
     HL = Mem16;
 }
 
 :LSPD Mem16 is op0_8 = 0x70; op0_8 = 0x0f; Mem16 {
-    # check_skip();
     SP = Mem16;
 }
 
-:LDAEX rpa3 is op0_8 = 0x48; op4_4 = 0x8 & rpa3 {
-    # check_skip();
+:LDEAX rpa3 is op0_8 = 0x48; op4_4 = 0x8 & rpa3 {
     EA = rpa3;
 }
 
-:STAEX (DE+imm8) is op0_8 = 0x48; op0_8 = 0x8b; imm8 & DE {
-    # check_skip();
-    ptr = DE + imm8;
+:STEAX (DE+imm8) is op0_8 = 0x48; op0_8 = 0x8b; imm8 & DE {
+    local ptr = DE + imm8;
     EA = *:2 ptr;
 }
 
-:STAEX (HL+imm8) is op0_8 = 0x48; op0_8 = 0x8f; imm8 & HL {
-    # check_skip();
-    ptr = HL + imm8;
+:STEAX (HL+imm8) is op0_8 = 0x48; op0_8 = 0x8f; imm8 & HL {
+    local ptr = HL + imm8;
     EA = *:2 ptr;
 }
 
-# IDENTICAL
 :PUSH rp1 is op3_5 = 0x16 & rp1 & rp1_0_3 < 0x5 {
-    # check_skip();
     push16(rp1);
 }
 
 :POP rp1 is op3_5 = 0x14 & rp1 & rp1_0_3 < 0x5 {
-    # check_skip();
     pop16(rp1);
 }
 
 :LXI rp2, imm16 is op0_4 = 0x4 & bit_7 = 0 & rp2 & rp2_4_3 < 0x5; imm16 {
-    # check_skip();
     rp2 = imm16;
 }
 
 :TABLE is op0_8 = 0x48; op0_8 = 0xa8 {
-    # check_skip();
     ptr:2 = PC + 3 + zext(A);
     BC = *:2 ptr;
 }
@@ -1217,36 +1184,6 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 # 14.6.7 16-bit operation instructions                         #
 ################################################################
 
-macro add16(op1, op2) {
-    # check_skip();
-	local AFmask:2 = -1 >> 8;
-	$(HC_flag) = (((op1 & AFmask) + (op2 & AFmask)) & (AFmask + 1)) != 0;
-	$(CY_flag) = carry(op1,op2);
-    op1 = op1 + op2;
-    $(Z_flag) = op1 == 0;
-}
-
-macro sub16(op1, op2) {
-    # check_skip();
- 	local AFmask = -1 >> 8;
-	$(HC_flag) = (((op1 & AFmask) - (op2 & AFmask)) & (AFmask + 1)) != 0;
-	$(CY_flag) = (op1 < op2);
-    op1 = op1 - op2;
-    $(Z_flag) = op1 == 0;
-}
-
-macro sub16WithBorrow(op1, op2) {
-    # check_skip();
-	local Ccopy:2 = zext($(CY_flag));
-	local AFmask:2 = -1 >> 8;
-	$(HC_flag) = (((op1 & AFmask) - (op2 & AFmask) - Ccopy) & (AFmask + 1)) != 0;
-	$(CY_flag) = op1 < op2;
-	local tempResult = op1 - op2;
-	$(CY_flag) = $(CY_flag) || (tempResult < Ccopy);
-	op1 = tempResult - Ccopy;
-    setResultFlags(op1);
-}
-
 :EADD EA, r2_0_2 is op0_8 = 0x70; op2_6 = 0x10 & r2_0_2 & EA {
     local tmp:2 = zext(r2_0_2);
     add16(EA, tmp);
@@ -1297,7 +1234,6 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :DGT EA, rp3_ is rp3_ & ... op2_6 = 0x2b & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     $(CY_flag) = EA < (rp3_ + 1);
     $(HC_flag) = EAL < (rp3_:1 + 1);
     $(Z_flag) = (EA - rp3_ - 1) == 0;
@@ -1305,7 +1241,6 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :DLT EA, rp3_ is rp3_ & ... op2_6 = 0x2f & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     $(CY_flag) = EA < rp3_;
     $(HC_flag) = EAL < rp3_:1;
     $(Z_flag) = (EA - rp3_) == 0;
@@ -1313,7 +1248,6 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :DNE EA, rp3_ is rp3_ & ... op2_6 = 0x3b & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     $(CY_flag) = EA < rp3_;
     $(HC_flag) = EAL < rp3_:1;
     $(Z_flag) = (EA - rp3_) == 0;
@@ -1321,7 +1255,6 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :DEQ EA, rp3_ is rp3_ & ... op2_6 = 0x3f & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     $(CY_flag) = EA < rp3_;
     $(HC_flag) = EAL < rp3_:1;
     $(Z_flag) = (EA - rp3_) == 0;
@@ -1329,13 +1262,11 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :DON EA, rp3_ is rp3_ & ... op2_6 = 0x33 & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     $(Z_flag) = (EA & rp3_) == 0;
     $(SK_flag) = $(Z_flag) == 0;
 }
 
 :DOFF EA, rp3_ is rp3_ & ... op2_6 = 0x37 & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     $(Z_flag) = (EA & rp3_) == 0;
     $(SK_flag) = $(Z_flag);
 }
@@ -1345,12 +1276,10 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :MUL r2_48 is r2_48 & ... op2_6 = 0x0b {
-    # check_skip();
     EA = EA * zext(r2_48);
 }
 
 :DIV r2_48 is r2_48 & ... op2_6 = 0x0f {
-    # check_skip();
     EA = EA / zext(r2_48);
     local rem:2 = EA % zext(r2_48);
     A = rem:1;
@@ -1371,12 +1300,10 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :INX rp_4_2 is op0_4 = 0x2 & op6_2 = 0x0 & rp_4_2 {
-    # check_skip();
     rp_4_2 = rp_4_2 + 1;
 }
 
 :INX EA is op0_8 = 0xa8 & EA {
-    # check_skip();
     EA = EA + 1;
 }
 
@@ -1391,12 +1318,10 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :DCX rp_4_2 is op0_4 = 0x3 & op6_2 = 0x0 & rp_4_2 {
-    # check_skip();
     rp_4_2 = rp_4_2 - 1;
 }
 
 :DCX EA is op0_8 = 0xa9 & EA {
-    # check_skip();
     EA = EA - 1;
 }
 
@@ -1405,22 +1330,18 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :DAA is op0_8 = 0x61 {
-    # check_skip();
     BCDadjust();
 }
 
 :STC is op0_8 = 0x48; op0_8 = 0x2b {
-    # check_skip();
     $(CY_flag) = 1;
 }
 
 :CLC is op0_8 = 0x48; op0_8 = 0x2a {
-    # check_skip();
     $(CY_flag) = 0;
 }
 
 :NEGA is op0_8 = 0x48; op0_8 = 0x3a {
-    # check_skip();
     A = -A;
 }
 
@@ -1429,7 +1350,6 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :RLD is op0_8 = 0x48; op0_8 = 0x38 {
-    # check_skip();
     local val:1 = *:1 HL;
     nibA:1 = A & 0x0f;
     nibM:1 = val >> 4;
@@ -1438,7 +1358,6 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :RRD is op0_8 = 0x48; op0_8 = 0x39 {
-	# check_skip();
     local val:1 = *:1 HL;
 	nibA:1 = A & 0x0f;
 	nibM:1 = val & 0x0f;
@@ -1447,68 +1366,58 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :RLL r2_48 is r2_48 & ... op2_6 = 0x0d {
-    # check_skip();
     local nextCY:1 = r2_48 >> 7;
     r2_48 = (r2_48 << 1) | $(CY_flag);
     $(CY_flag) = nextCY;
 }
 
 :RLR r2_48 is r2_48 & ... op2_6 = 0x0c {
-    # check_skip();
     local nextCY = r2_48 & 1;
     r2_48 = (r2_48 >> 1) | (nextCY << 7);
     $(CY_flag) = nextCY;
 }
 
 :SLL r2_48 is r2_48 & ... op2_6 = 0x09 {
-    # check_skip();
     $(CY_flag) = r2_48 >> 7;
     r2_48 = r2_48 << 1;
 }
 
 :SLR r2_48 is r2_48 & ... op2_6 = 0x08 {
-    # check_skip();
     $(CY_flag) = r2_48 & 1;
     r2_48 = r2_48 >> 1;
 }
 
 :SLLC r2_48 is r2_48 & ... op2_6 = 0x01 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     $(CY_flag) = r2_48 >> 7;
     r2_48 = r2_48 << 1;
     $(SK_flag) = $(CY_flag);
 }
 
 :SLRC r2_48 is r2_48 & ... op2_6 = 0x00 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     $(CY_flag) = r2_48 & 1;
     r2_48 = r2_48 >> 1;
     $(SK_flag) = $(CY_flag);
 }
 
 :DRLL EA is op0_8 = 0x48; op0_8 = 0xb4 & EA {
-    # check_skip();
     local nextCY:2 = EA >> 15;
     EA = (EA << 1) | nextCY;
     $(CY_flag) = nextCY:1;
 }
 
 :DRLR EA is op0_8 = 0x48; op0_8 = 0xb0 & EA {
-    # check_skip();
     local nextCY:2 = EA & 1;
     EA = (EA >> 1) | (nextCY << 15);
     $(CY_flag) = nextCY:1;
 }
 
 :DSLL EA is op0_8 = 0x48; op0_8 = 0xa4 & EA {
-    # check_skip();
     local nextCY:2 = EA >> 15;
     EA = EA << 1;
     $(CY_flag) = nextCY:1;
 }
 
 :DSLR EA is op0_8 = 0x48; op0_8 = 0xa0 & EA {
-    # check_skip();
     local nextCY:2 = EA & 1;
     EA = EA >> 1;
     $(CY_flag) = nextCY:1;
@@ -1519,32 +1428,26 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :JMP Addr16 is op0_8 = 0x54; Addr16 {
-    # check_skip();
     goto Addr16;
 }
 
 :JB is op0_8 = 0x21 {
-    # check_skip();
     goto [BC];
 }
 
 :JR RelAddr6 is op6_2 = 0x3 & RelAddr6 {
-    # check_skip();
     goto RelAddr6;
 }
 
 :JRE RelAddr8_pos is op0_8 = 0x4e; RelAddr8_pos {
-    # check_skip();
     goto RelAddr8_pos;
 }
 
 :JRE RelAddr8_neg is op0_8 = 0x4f; RelAddr8_neg {
-    # check_skip();
     goto RelAddr8_neg;
 }
 
 :JEA is op0_8 = 0x48; op0_8 = 0x28 {
-    # check_skip();
     goto [EA];
 }
 
@@ -1553,30 +1456,24 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :CALL Addr16 is op0_8 = 0x40; Addr16 {
-    # check_skip();
     local tmp:2 = inst_next;
     push16(tmp);
     call Addr16;
 }
 
 :CALB is op0_8 = 0x48; op0_8 = 0x29 {
-    # check_skip();
     local tmp:2 = inst_next;
     push16(tmp);
     call [BC];
 }
 
-faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:1 faloc;}
-
 :CALF faAddr is op3_5 = 0x0f ... & faAddr {
-    # check_skip();
     local tmp:2 = inst_next;
     push16(tmp);
     call faAddr;
 }
 
 :CALT loc is op5_3 = 0x4 & ta_0_5 [ loc = 0x0080 + (ta_0_5 << 1); ] {
-    # check_skip();
     local tmp:2 = inst_next;
     local ptr:2 = 0x0080 + (ta_0_5 << 2);
     local dest = *:2 ptr;
@@ -1585,7 +1482,6 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 }
 
 :SOFTI is op0_8 = 0x72 {
-    # check_skip();
     local tmp:2 = inst_next;
     push8(PSW);
     push16(tmp);
@@ -1597,14 +1493,12 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 ################################################################
 
 :RET is op0_8 = 0xb8 {
-    # check_skip();
     local tmp:2 = 0;
     pop16(tmp);
     return [tmp];
 }
 
 :RETS is op0_8 = 0xb9 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     local tmp:2 = 0;
     pop16(tmp);
     $(SK_flag) = 1;
@@ -1612,7 +1506,6 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 }
 
 :RETI is op0_8 = 0x62 {
-    # check_skip();
     local tmp:2 = 0;
     pop16(tmp);
     pop8(PSW);
@@ -1624,34 +1517,29 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 ################################################################
 
 :BIT bits0_3, waMem8 is op3_5 = 0x0b & bits0_3; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
-    tmp:1 = bits0_3;
-    wa:1 = waMem8;
-    bit:1 = 0x1 << tmp;
+    local tmp:1 = bits0_3;
+    local wa:1 = waMem8;
+    local bit:1 = 0x1 << tmp;
     if wa & bit == 0 goto inst_next;
     $(SK_flag) = 1;
 }
 
 :SK flag_ is flag_ & ... op3_5 = 0x1 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     if flag_ == 0 goto inst_next;
     $(SK_flag) = 1;
 }
 
 :SKN flag_ is flag_ & ... op3_5 = 0x3 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     if flag_ == 1 goto inst_next;
     $(SK_flag) = 1;
 }
 
 :SKIT irf is op0_8 = 0x48; op5_3 = 0x2 & irf [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     if irf == 0 goto inst_next;
     $(SK_flag) = 1;
 }
 
 :SKNIT irf is op0_8 = 0x48; op5_3 = 0x3 & irf [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
-    # check_skip();
     if irf == 1 goto inst_next;
     $(SK_flag) = 1;
 }
@@ -1662,25 +1550,20 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 ################################################################
 
 :NOP is op0_8 = 0x00 {
-    # check_skip();
 }
 
 :EI is op0_8 = 0xaa {
-    # check_skip();
     enableMaskableInterrupts();
 }
 
 :DI is op0_8 = 0xba {
-    # check_skip();
     disableMaskableInterrupts();
 }
 
 :HLT is op0_8 = 0x48; op0_8 = 0x3b {
-    # check_skip();
     halt();
 }
 
 :STOP is op0_8 = 0x48; op0_8 = 0xbb {
-    # check_skip();
     halt();
 }
