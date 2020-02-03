@@ -168,7 +168,7 @@ macro setAddFlags(op1,op2) {
 macro add(op1, op2) {
     check_skip();
     setAddFlags(op1, op2);
-    op1 = op1 + op1;
+    op1 = op1 + op2;
     setResultFlags(op1);
 }
 
