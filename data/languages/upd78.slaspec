@@ -39,6 +39,12 @@ define register offset=0x60 size=2 [ETM0 ETM1 ECNT ECPT]; # 16bit mode control r
 # Interrupt flags
 define register offset=0xA0 size=1 [NMI FT0 FT1 F1 F2 FE0 FE1 FEIN FAD FSR FST ER OV AN4 AN5 AN6 AN7 SB];
 
+define register offset=0xF0 size=4 contextreg;
+define context contextreg
+	doPseudo = (0,0)
+	possibleSkip = (1,1) noflow
+;
+
 ################################################################
 # Tokens                                                       #
 ################################################################
@@ -166,7 +172,7 @@ macro setAddFlags(op1,op2) {
 }
 
 macro add(op1, op2) {
-    check_skip();
+    # check_skip();
     setAddFlags(op1, op2);
     op1 = op1 + op2;
     setResultFlags(op1);
@@ -174,7 +180,7 @@ macro add(op1, op2) {
 
 # op1 = op1 + op2 + CY_flag
 macro addCarry(op1, op2) {
-    check_skip();
+    # check_skip();
     setAddFlags(op1, op2 + $(CY_flag));
     op1 = op1 + op2 + $(CY_flag);
     setResultFlags(op1);
@@ -182,7 +188,7 @@ macro addCarry(op1, op2) {
 
 # op1 = op1 + op2, skip if no carry
 macro addNC(op1, op2) {
-    check_skip();
+    # check_skip();
     setAddFlags(op1, op2);
     op1 = op1 + op2;
     setResultFlags(op1);
@@ -196,7 +202,7 @@ macro setSubFlags(op1,op2) {
 }
 
 macro subWithBorrow(op1, op2) {
-    check_skip();
+    # check_skip();
 	local Ccopy = $(CY_flag);
 	local AFmask = -1 >> 4;
 	$(HC_flag) = (((op1 & AFmask) - (op2 & AFmask) - Ccopy) & (AFmask + 1)) != 0;
@@ -208,7 +214,7 @@ macro subWithBorrow(op1, op2) {
 }
 
 macro subNoBorrow(op1, op2) {
-    check_skip();
+    # check_skip();
     setSubFlags(op1, op2);
     op1 = op1 - op2;
     setResultFlags(op1);
@@ -216,66 +222,66 @@ macro subNoBorrow(op1, op2) {
 }
 
 macro sub(op1, op2) {
-    check_skip();
+    # check_skip();
     setSubFlags(op1, op2);
     op1 = op1 - op2;
     setResultFlags(op1);
 }
 
 macro and(op1, op2) {
-    check_skip();
+    # check_skip();
     op1 = op1 & op2;
     setResultFlags(op1);
 }
 
 macro or(op1, op2) {
-    check_skip();
+    # check_skip();
     op1 = op1 | op2;
     setResultFlags(op1);
 }
 
 macro xor(op1, op2) {
-    check_skip();
+    # check_skip();
     op1 = op1 ^ op2;
     setResultFlags(op1);
 }
 
 macro greater(op1, op2) {
-    check_skip();
+    # check_skip();
     setSubFlags(op1, op2 + 1);
     setResultFlags(op1 - op2 - 1);
     $(SK_flag) = $(CY_flag) != 1;
 }
 
 macro lesser(op1, op2) {
-    check_skip();
+    # check_skip();
     setSubFlags(op1, op2);
     setResultFlags(op1 - op2);
     $(SK_flag) = $(CY_flag);
 }
 
 macro notEqual(op1, op2) {
-    check_skip();
+    # check_skip();
     setSubFlags(op1, op2);
     $(Z_flag) = (op1 - op2) == 0;
     $(SK_flag) = $(Z_flag) == 0;
 }
 
 macro equal(op1, op2) {
-    check_skip();
+    # check_skip();
     setSubFlags(op1, op2);
     $(Z_flag) = (op1 == op2);
     $(SK_flag) = $(Z_flag);
 }
 
 macro onTest(op1, op2) {
-    check_skip();
+    # check_skip();
     $(Z_flag) = (op1 & op2) == 0;
     $(SK_flag) = $(Z_flag) != 1;
 }
 
 macro offTest(op1, op2) {
-    check_skip();
+    # check_skip();
     $(Z_flag) = (op1 & op2) == 0;
     $(SK_flag) = $(Z_flag);
 }
@@ -416,118 +422,123 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 # 14.6.1 8-bit data transfer instructions                      #
 ################################################################
 
+:^instruction is possibleSkip=1 & instruction [ possibleSkip=0; ] {
+	check_skip();
+	build instruction;
+}
+
 :MOV r1_0_3, A is op3_5=0x3 & r1_0_3 & A {
-    check_skip();
+    # check_skip();
     r1_0_3 = A;
 }
 
 :MOV A, r1_0_3 is op3_5=0x1 & r1_0_3 & A {
-    check_skip();
+    # check_skip();
     A = r1_0_3;
 }
 
 :MOV srl_0_5, A is op0_8 = 0x4D & A; op6_2 = 0x3 & srl_0_5 & bit_5=0 {
-    check_skip();
+    # check_skip();
     srl_0_5 = A;
 }
 
 :MOV cr_0_2, A is op0_8 = 0x4D & A; op6_2 = 0x3 & cr_0_2 & bit_5=1 {
-    check_skip();
+    # check_skip();
     cr_0_2 = A;
 }
 
 :MOV A, srl_0_5 is op0_8 = 0x4C; op6_2 = 0x3 & srl_0_5 & bit_5=0 & A {
-    check_skip();
+    # check_skip();
     A = srl_0_5;
 }
 
 :MOV A, cr_0_2 is op0_8 = 0x4C; op6_2 = 0x3 & cr_0_2 & bit_5=1 & A {
-    check_skip();
+    # check_skip();
     A = cr_0_2;
 }
 
 :MOV r_0_3, Mem8 is op0_8 = 0x70; op3_5 = 0xD & r_0_3; Mem8 {
-    check_skip();
+    # check_skip();
     r_0_3 = Mem8;
 }
 
 :MOV Mem8, r_0_3 is op0_8 = 0x70; op3_5 = 0xF & r_0_3; Mem8 {
-    check_skip();
+    # check_skip();
     Mem8 = r_0_3;
 }
 
 :MVI r_0_3, imm8 is op3_5 = 0xd & r_0_3 ; imm8 {
-    check_skip();
+    # check_skip();
     r_0_3 = imm8;
 }
 
 :MVI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x00 & sr2l_0_3; imm8 {
-    check_skip();
+    # check_skip();
     sr2l_0_3 = imm8;
 }
 
 :MVI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x10 & sr2h_0_3; imm8 {
-    check_skip();
+    # check_skip();
     sr2h_0_3 = imm8;
 }
 
 :MVIW waMem8, val8 is op0_8 = 0x71; waMem8; val8 {
-    check_skip();
+    # check_skip();
     waMem8 = val8;
 }
 
 :MVIX rpa1, imm8 is op2_6 = 0x12 & rpa1; imm8 {
-    check_skip();
+    # check_skip();
     rpa1 = imm8;
 }
 
 :STAW waMem8 is op0_8 = 0x33; waMem8 {
-    check_skip();
+    # check_skip();
     waMem8 = A;
 }
 
 :LDAW waMem8 is op0_8 = 0x1; waMem8 {
-    check_skip();
+    # check_skip();
     A = waMem8;
 }
 
 
 :STAX rpa2 is op3_4 = 0x7 & rpa2_0_3 != 0x0 & rpa2 {
-    check_skip();
+    # check_skip();
     rpa2 = A;
 }
 
 :STAX (DE+imm8) is op0_8 = 0xbb; imm8 & DE {
-    check_skip();
+    # check_skip();
     ptr = DE + imm8;
     *:1 ptr = A;
 }
 
 :STAX (HL+imm8) is op0_8 = 0xbf; imm8 & HL {
-    check_skip();
+    # check_skip();
     ptr = HL + imm8;
     *:1 ptr = A;
 }
 
 :LDAX rpa2 is op3_4 = 0x5 & rpa2_0_3 != 0x0 & rpa2 {
-    check_skip();
+    # check_skip();
     A = rpa2;
 }
 
 :LDAX (DE+imm8) is op0_8 = 0xab; imm8 & DE {
-    check_skip();
+    # check_skip();
     ptr = DE + imm8;
     A = *:1 ptr;
 }
 
 :LDAX (HL+imm8) is op0_8 = 0xaf; imm8 & HL {
-    check_skip();
+    # check_skip();
     ptr = HL + imm8;
     A = *:1 ptr;
 }
 
 :EXX is op0_8 = 0x11 {
-    check_skip();
+    # check_skip();
     tmp:2 = BC;
     BC = BC_;
     BC_ = tmp;
@@ -540,7 +551,7 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 }
 
 :EXA is op0_8 = 0x10 {
-    check_skip();
+    # check_skip();
     tmp:2 = VA;
     VA = VA_;
     VA_ = tmp;
@@ -550,14 +561,14 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 }
 
 :EXH is op0_8 = 0x50 {
-    check_skip();
+    # check_skip();
     tmp:2 = HL;
     HL = HL_;
     HL_ = tmp;
 }
 
 :BLOCK is op0_8 = 0x31 {
-    check_skip();
+    # check_skip();
     <loopstart>
     *:1 DE = *:1 HL;
     DE = DE + 1;
@@ -572,118 +583,118 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 
 # FIXME - Better matching?
 :DMOV rp3, EA is op2_6 = 0x2d & rp3_0_2 != 0x0 & rp3 & EA {
-    check_skip();
+    # check_skip();
     rp3 = EA;
 }
 
 # FIXME - Better matching?
 :DMOV EA, rp3 is op2_6 = 0x29 & rp3_0_2 != 0x0 & rp3 & EA {
-    check_skip();
+    # check_skip();
     EA = rp3;
 }
 
 :DMOV sr3_0_1, EA is op0_8 = 0x48; op1_7 = 0x69 & sr3_0_1 & EA {
-    check_skip();
+    # check_skip();
     sr3_0_1 = EA;
 }
 
 :DMOV EA, sr4_0_1 is op0_8 = 0x48; op1_7 = 0x60 & sr4_0_1 & EA {
-    check_skip();
+    # check_skip();
     EA = sr4_0_1;
 }
 
 :SBCD Mem16 is op0_8 = 0x70; op0_8 = 0x1e; Mem16 {
-    check_skip();
+    # check_skip();
     Mem16 = BC;
 }
 
 :SDED Mem16 is op0_8 = 0x70; op0_8 = 0x2e; Mem16 {
-    check_skip();
+    # check_skip();
     Mem16 = DE;
 }
 
 :SHLD Mem16 is op0_8 = 0x70; op0_8 = 0x3e; Mem16 {
-    check_skip();
+    # check_skip();
     Mem16 = HL;
 }
 
 :SSPD Mem16 is op0_8 = 0x70; op0_8 = 0x0e; Mem16 {
-    check_skip();
+    # check_skip();
     Mem16 = SP;
 }
 
 :STAEX rpa3 is op0_8 = 0x48; op4_4 = 0x9 & rpa3 {
-    check_skip();
+    # check_skip();
     rpa3 = EA;
 }
 
 :STAEX (DE+imm8) is op0_8 = 0x48; op0_8 = 0x9b; imm8 & DE {
-    check_skip();
+    # check_skip();
     ptr = DE + imm8;
     *:2 ptr = EA;
 }
 
 :STAEX (HL+imm8) is op0_8 = 0x48; op0_8 = 0x9f; imm8 & HL {
-    check_skip();
+    # check_skip();
     ptr = HL + imm8;
     *:2 ptr = EA;
 }
 
 :LBCD Mem16 is op0_8 = 0x70; op0_8 = 0x1f; Mem16 {
-    check_skip();
+    # check_skip();
     BC = Mem16;
 }
 
 :LDED Mem16 is op0_8 = 0x70; op0_8 = 0x2f; Mem16 {
-    check_skip();
+    # check_skip();
     DE = Mem16;
 }
 
 :LHLD Mem16 is op0_8 = 0x70; op0_8 = 0x3f; Mem16 {
-    check_skip();
+    # check_skip();
     HL = Mem16;
 }
 
 :LSPD Mem16 is op0_8 = 0x70; op0_8 = 0x0f; Mem16 {
-    check_skip();
+    # check_skip();
     SP = Mem16;
 }
 
 :LDAEX rpa3 is op0_8 = 0x48; op4_4 = 0x8 & rpa3 {
-    check_skip();
+    # check_skip();
     EA = rpa3;
 }
 
 :STAEX (DE+imm8) is op0_8 = 0x48; op0_8 = 0x8b; imm8 & DE {
-    check_skip();
+    # check_skip();
     ptr = DE + imm8;
     EA = *:2 ptr;
 }
 
 :STAEX (HL+imm8) is op0_8 = 0x48; op0_8 = 0x8f; imm8 & HL {
-    check_skip();
+    # check_skip();
     ptr = HL + imm8;
     EA = *:2 ptr;
 }
 
 # IDENTICAL
 :PUSH rp1 is op3_5 = 0x16 & rp1 & rp1_0_3 < 0x5 {
-    check_skip();
+    # check_skip();
     push16(rp1);
 }
 
 :POP rp1 is op3_5 = 0x14 & rp1 & rp1_0_3 < 0x5 {
-    check_skip();
+    # check_skip();
     pop16(rp1);
 }
 
 :LXI rp2, imm16 is op0_4 = 0x4 & bit_7 = 0 & rp2 & rp2_4_3 < 0x5; imm16 {
-    check_skip();
+    # check_skip();
     rp2 = imm16;
 }
 
 :TABLE is op0_8 = 0x48; op0_8 = 0xa8 {
-    check_skip();
+    # check_skip();
     ptr:2 = PC + 3 + zext(A);
     BC = *:2 ptr;
 }
@@ -709,11 +720,11 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 }
 
 # Add, skip if no carry
-:ADDNC A, r_0_3 is op0_8 = 0x60; op3_5 = 0x14 & r_0_3 & A {
+:ADDNC A, r_0_3 is op0_8 = 0x60; op3_5 = 0x14 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     addNC(A, r_0_3);
 }
 
-:ADDNC r_0_3, A is op0_8 = 0x60; op3_5 = 0x04 & r_0_3 & A {
+:ADDNC r_0_3, A is op0_8 = 0x60; op3_5 = 0x04 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     addNC(r_0_3, A);
 }
 
@@ -734,11 +745,11 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 }
 
 # Substract, skip if no borrow
-:SUBNB A, r_0_3 is op0_8 = 0x60; op3_5 = 0x16 & r_0_3 & A {
+:SUBNB A, r_0_3 is op0_8 = 0x60; op3_5 = 0x16 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     subNoBorrow(A, r_0_3);
 }
 
-:SUBNB r_0_3, A is op0_8 = 0x60; op3_5 = 0x06 & r_0_3 & A {
+:SUBNB r_0_3, A is op0_8 = 0x60; op3_5 = 0x06 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     subNoBorrow(r_0_3, A);
 }
 
@@ -766,43 +777,43 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     xor(r_0_3, A);
 }
 
-:GTA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x15 & r_0_3 & A {
+:GTA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x15 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(A, r_0_3);
 }
 
-:GTA r_0_3, A is op0_8 = 0x60; op3_5 = 0x05 & r_0_3 & A {
+:GTA r_0_3, A is op0_8 = 0x60; op3_5 = 0x05 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(r_0_3, A);
 }
 
-:LTA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x17 & r_0_3 & A {
+:LTA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x17 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(A, r_0_3);
 }
 
-:LTA r_0_3, A is op0_8 = 0x60; op3_5 = 0x07 & r_0_3 & A {
+:LTA r_0_3, A is op0_8 = 0x60; op3_5 = 0x07 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(r_0_3, A);
 }
 
-:NEA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x1d & r_0_3 & A {
+:NEA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x1d & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(A, r_0_3);
 }
 
-:NEA r_0_3, A is op0_8 = 0x60; op3_5 = 0x0d & r_0_3 & A {
+:NEA r_0_3, A is op0_8 = 0x60; op3_5 = 0x0d & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(r_0_3, A);
 }
 
-:EQA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x1f & r_0_3 & A {
+:EQA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x1f & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(A, r_0_3);
 }
 
-:EQA r_0_3, A is op0_8 = 0x60; op3_5 = 0x0f & r_0_3 & A {
+:EQA r_0_3, A is op0_8 = 0x60; op3_5 = 0x0f & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(r_0_3, A);
 }
 
-:ONA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x19 & r_0_3 & A {
+:ONA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x19 & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     onTest(A, r_0_3);
 }
 
-:OFFA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x1b & r_0_3 & A {
+:OFFA A, r_0_3 is op0_8 = 0x60; op3_5 = 0x1b & r_0_3 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     offTest(A, r_0_3);
 }
 
@@ -818,7 +829,7 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     addCarry(A, rpa);
 }
 
-:ADDNCX rpa is op0_8 = 0x70; op3_5 = 0x14 & rpa_0_3 != 0 & rpa {
+:ADDNCX rpa is op0_8 = 0x70; op3_5 = 0x14 & rpa_0_3 != 0 & rpa [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     addNC(A, rpa);
 }
 
@@ -830,7 +841,7 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     subWithBorrow(A, rpa);
 }
 
-:SUBNBX rpa is op0_8 = 0x70; op3_5 = 0x16 & rpa_0_3 != 0 & rpa {
+:SUBNBX rpa is op0_8 = 0x70; op3_5 = 0x16 & rpa_0_3 != 0 & rpa [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     subNoBorrow(A, rpa);
 }
 
@@ -846,27 +857,27 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     xor(A, rpa);
 }
 
-:GTAX rpa is op0_8 = 0x70; op3_5 = 0x15 & rpa_0_3 != 0 & rpa {
+:GTAX rpa is op0_8 = 0x70; op3_5 = 0x15 & rpa_0_3 != 0 & rpa [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(A, rpa);
 }
 
-:LTAX rpa is op0_8 = 0x70; op3_5 = 0x17 & rpa_0_3 != 0 & rpa {
+:LTAX rpa is op0_8 = 0x70; op3_5 = 0x17 & rpa_0_3 != 0 & rpa [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(A, rpa);
 }
 
-:NEAX rpa is op0_8 = 0x70; op3_5 = 0x1d & rpa_0_3 != 0 & rpa {
+:NEAX rpa is op0_8 = 0x70; op3_5 = 0x1d & rpa_0_3 != 0 & rpa [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(A, rpa);
 }
 
-:EQAX rpa is op0_8 = 0x70; op3_5 = 0x1f & rpa_0_3 != 0 & rpa {
+:EQAX rpa is op0_8 = 0x70; op3_5 = 0x1f & rpa_0_3 != 0 & rpa [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(A, rpa);
 }
 
-:ONAX rpa is op0_8 = 0x70; op3_5 = 0x19 & rpa_0_3 != 0 & rpa {
+:ONAX rpa is op0_8 = 0x70; op3_5 = 0x19 & rpa_0_3 != 0 & rpa [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     onTest(A, rpa);
 }
 
-:OFFAX rpa is op0_8 = 0x70; op3_5 = 0x1b & rpa_0_3 != 0 & rpa {
+:OFFAX rpa is op0_8 = 0x70; op3_5 = 0x1b & rpa_0_3 != 0 & rpa [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     offTest(A, rpa);
 }
 
@@ -906,19 +917,19 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     addCarry(sr2h_0_3, imm8);
 }
 
-:ADINC A, imm8 is op0_8 = 0x26; imm8 & A {
+:ADINC A, imm8 is op0_8 = 0x26; imm8 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     addNC(A, imm8);
 }
 
-:ADINC r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x04 & r_0_3; imm8 {
+:ADINC r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x04 & r_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     addNC(r_0_3, imm8);
 }
 
-:ADINC sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x04 & sr2l_0_3; imm8 {
+:ADINC sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x04 & sr2l_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     addNC(sr2l_0_3, imm8);
 }
 
-:ADINC sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x14 & sr2h_0_3; imm8 {
+:ADINC sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x14 & sr2h_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     addNC(sr2h_0_3, imm8);
 }
 
@@ -954,19 +965,19 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     subWithBorrow(sr2h_0_3, imm8);
 }
 
-:SUINB A, imm8 is op0_8 = 0x36; imm8 & A {
+:SUINB A, imm8 is op0_8 = 0x36; imm8 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     subNoBorrow(A, imm8);
 }
 
-:SUINB r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x06 & r_0_3; imm8 {
+:SUINB r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x06 & r_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     subNoBorrow(r_0_3, imm8);
 }
 
-:SUINB sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x06 & sr2l_0_3; imm8 {
+:SUINB sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x06 & sr2l_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     subNoBorrow(sr2l_0_3, imm8);
 }
 
-:SUINB sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x16 & sr2h_0_3; imm8 {
+:SUINB sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x16 & sr2h_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     subNoBorrow(sr2h_0_3, imm8);
 }
 
@@ -1018,91 +1029,91 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     xor(sr2h_0_3, imm8);
 }
 
-:GTI A, imm8 is op0_8 = 0x27; imm8 & A {
+:GTI A, imm8 is op0_8 = 0x27; imm8 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(A, imm8);
 }
 
-:GTI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x05 & r_0_3; imm8 {
+:GTI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x05 & r_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(r_0_3, imm8);
 }
 
-:GTI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x05 & sr2l_0_3; imm8 {
+:GTI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x05 & sr2l_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(sr2l_0_3, imm8);
 }
 
-:GTI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x15 & sr2h_0_3; imm8 {
+:GTI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x15 & sr2h_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(sr2h_0_3, imm8);
 }
 
-:LTI A, imm8 is op0_8 = 0x37; imm8 & A{
+:LTI A, imm8 is op0_8 = 0x37; imm8 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(A, imm8);
 }
 
-:LTI r_0_3, imm8 is op0_8 =74; op3_5 = 0x07 & r_0_3; imm8 {
+:LTI r_0_3, imm8 is op0_8 =74; op3_5 = 0x07 & r_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(r_0_3, imm8);
 }
 
-:LTI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x07 & sr2l_0_3; imm8 {
+:LTI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x07 & sr2l_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(sr2l_0_3, imm8);
 }
 
-:LTI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x17 & sr2h_0_3; imm8 {
+:LTI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x17 & sr2h_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(sr2h_0_3, imm8);
 }
 
-:NEI A, imm8 is op0_8 = 0x67; imm8 & A {
+:NEI A, imm8 is op0_8 = 0x67; imm8 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(A, imm8);
 }
 
-:NEI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x0d & r_0_3; imm8 {
+:NEI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x0d & r_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(r_0_3, imm8);
 }
 
-:NEI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x0d & sr2l_0_3; imm8 {
+:NEI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x0d & sr2l_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(sr2l_0_3, imm8);
 }
 
-:NEI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x1d & sr2h_0_3; imm8 {
+:NEI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x1d & sr2h_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(sr2h_0_3, imm8);
 }
 
-:EQI A, imm8 is op0_8 = 0x77; imm8 & A {
+:EQI A, imm8 is op0_8 = 0x77; imm8 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(A, imm8);
 }
 
-:EQI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x0f & r_0_3; imm8 {
+:EQI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x0f & r_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(r_0_3, imm8);
 }
 
-:EQI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x0f & sr2l_0_3; imm8 {
+:EQI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x0f & sr2l_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(sr2l_0_3, imm8);
 }
 
-:EQI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x1f & sr2h_0_3; imm8 {
+:EQI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x1f & sr2h_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(sr2h_0_3, imm8);
 }
 
-:ONI A, imm8 is op0_8 = 0x47; imm8 & A {
+:ONI A, imm8 is op0_8 = 0x47; imm8 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     onTest(A, imm8);
 }
 
-:ONI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x09 & r_0_3; imm8 {
+:ONI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x09 & r_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     onTest(r_0_3, A);
 }
 
-:ONI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x09 & sr2l_0_3; imm8 {
+:ONI sr2l_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x09 & sr2l_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     onTest(sr2l_0_3, imm8);
 }
 
-:ONI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x19 & sr2h_0_3; imm8 {
+:ONI sr2h_0_3, imm8 is op0_8 = 0x64; op3_5 = 0x19 & sr2h_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     onTest(sr2h_0_3, imm8);
 }
 
-:OFFI A, imm8 is op0_8 = 0x57; imm8 & A {
+:OFFI A, imm8 is op0_8 = 0x57; imm8 & A [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     offTest(A, imm8);
 }
 
-:OFFI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x0b & r_0_3; imm8 {
+:OFFI r_0_3, imm8 is op0_8 = 0x74; op3_5 = 0x0b & r_0_3; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     offTest(r_0_3, imm8);
 }
 
@@ -1118,7 +1129,7 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     addCarry(A, waMem8);
 }
 
-:ADDNCW waMem8 is op0_8 = 0x74; op0_8 = 0xa0; waMem8 {
+:ADDNCW waMem8 is op0_8 = 0x74; op0_8 = 0xa0; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     addNC(A, waMem8);
 }
 
@@ -1130,7 +1141,7 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     subWithBorrow(A, waMem8);
 }
 
-:SUBNBW waMem8 is op0_8 = 0x74; op0_8 = 0xb0; waMem8 {
+:SUBNBW waMem8 is op0_8 = 0x74; op0_8 = 0xb0; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     subNoBorrow(A, waMem8);
 }
 
@@ -1146,27 +1157,27 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     xor(A, waMem8);
 }
 
-:GTAW waMem8 is op0_8 = 0x74; op0_8 = 0xa8; waMem8 {
+:GTAW waMem8 is op0_8 = 0x74; op0_8 = 0xa8; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(A, waMem8);
 }
 
-:LTAW waMem8 is op0_8 = 0x74; op0_8 = 0xb8; waMem8 {
+:LTAW waMem8 is op0_8 = 0x74; op0_8 = 0xb8; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(A, waMem8);
 }
 
-:NEAW waMem8 is op0_8 = 0x74; op0_8 = 0xe8; waMem8 {
+:NEAW waMem8 is op0_8 = 0x74; op0_8 = 0xe8; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(A, waMem8);
 }
 
-:EQAW waMem8 is op0_8 = 0x74; op0_8 = 0xf8; waMem8 {
+:EQAW waMem8 is op0_8 = 0x74; op0_8 = 0xf8; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(A, waMem8);
 }
 
-:ONAW waMem8 is op0_8 = 0x74; op0_8 = 0xc8; waMem8 {
+:ONAW waMem8 is op0_8 = 0x74; op0_8 = 0xc8; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     onTest(A, waMem8);
 }
 
-:OFFAW waMem8 is op0_8 = 0x74; op0_8 = 0xd8; waMem8 {
+:OFFAW waMem8 is op0_8 = 0x74; op0_8 = 0xd8; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     offTest(A, waMem8);
 }
 
@@ -1178,27 +1189,27 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
     or(waMem8, imm8);
 }
 
-:GTIW waMem8, imm8 is op0_8 = 0x25; waMem8; imm8 {
+:GTIW waMem8, imm8 is op0_8 = 0x25; waMem8; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     greater(waMem8, imm8);
 }
 
-:LTIW waMem8, imm8 is op0_8 = 0x35; waMem8; imm8 {
+:LTIW waMem8, imm8 is op0_8 = 0x35; waMem8; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     lesser(waMem8, imm8);
 }
 
-:NEIW waMem8, imm8 is op0_8 = 0x65; waMem8; imm8 {
+:NEIW waMem8, imm8 is op0_8 = 0x65; waMem8; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     notEqual(waMem8, imm8);
 }
 
-:EQIW waMem8, imm8 is op0_8 = 0x75; waMem8; imm8 {
+:EQIW waMem8, imm8 is op0_8 = 0x75; waMem8; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     equal(waMem8, imm8);
 }
 
-:ONIW waMem8, imm8 is op0_8 = 0x45; waMem8; imm8 {
+:ONIW waMem8, imm8 is op0_8 = 0x45; waMem8; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     onTest(waMem8, imm8);
 }
 
-:OFFIW waMem8, imm8 is op0_8 = 0x55; waMem8; imm8 {
+:OFFIW waMem8, imm8 is op0_8 = 0x55; waMem8; imm8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     offTest(waMem8, imm8);
 }
 
@@ -1207,7 +1218,7 @@ irf: AN7    is irf_0_5 = 0x13 & AN7 { export AN7; }
 ################################################################
 
 macro add16(op1, op2) {
-    check_skip();
+    # check_skip();
 	local AFmask:2 = -1 >> 8;
 	$(HC_flag) = (((op1 & AFmask) + (op2 & AFmask)) & (AFmask + 1)) != 0;
 	$(CY_flag) = carry(op1,op2);
@@ -1216,7 +1227,7 @@ macro add16(op1, op2) {
 }
 
 macro sub16(op1, op2) {
-    check_skip();
+    # check_skip();
  	local AFmask = -1 >> 8;
 	$(HC_flag) = (((op1 & AFmask) - (op2 & AFmask)) & (AFmask + 1)) != 0;
 	$(CY_flag) = (op1 < op2);
@@ -1225,7 +1236,7 @@ macro sub16(op1, op2) {
 }
 
 macro sub16WithBorrow(op1, op2) {
-    check_skip();
+    # check_skip();
 	local Ccopy:2 = zext($(CY_flag));
 	local AFmask:2 = -1 >> 8;
 	$(HC_flag) = (((op1 & AFmask) - (op2 & AFmask) - Ccopy) & (AFmask + 1)) != 0;
@@ -1250,7 +1261,7 @@ macro sub16WithBorrow(op1, op2) {
     add16(EA, tmp);
 }
 
-:DADDNC EA, rp3_ is rp3_ & ... op2_6 = 0x29 & EA {
+:DADDNC EA, rp3_ is rp3_ & ... op2_6 = 0x29 & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     add16(EA, rp3_);
     $(SK_flag) = $(CY_flag) == 0;
 }
@@ -1268,7 +1279,7 @@ macro sub16WithBorrow(op1, op2) {
     sub16WithBorrow(EA, rp3_);
 }
 
-:DSUBNB EA, rp3_ is rp3_ & ... op2_6 = 0x2d & EA {
+:DSUBNB EA, rp3_ is rp3_ & ... op2_6 = 0x2d & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     sub16(EA, rp3_);
     $(SK_flag) = $(CY_flag) == 0;
 }
@@ -1285,46 +1296,46 @@ macro sub16WithBorrow(op1, op2) {
     xor(EA, rp3_);
 }
 
-:DGT EA, rp3_ is rp3_ & ... op2_6 = 0x2b & EA {
-    check_skip();
+:DGT EA, rp3_ is rp3_ & ... op2_6 = 0x2b & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     $(CY_flag) = EA < (rp3_ + 1);
     $(HC_flag) = EAL < (rp3_:1 + 1);
     $(Z_flag) = (EA - rp3_ - 1) == 0;
     $(SK_flag) = $(CY_flag) == 0;
 }
 
-:DLT EA, rp3_ is rp3_ & ... op2_6 = 0x2f & EA {
-    check_skip();
+:DLT EA, rp3_ is rp3_ & ... op2_6 = 0x2f & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     $(CY_flag) = EA < rp3_;
     $(HC_flag) = EAL < rp3_:1;
     $(Z_flag) = (EA - rp3_) == 0;
     $(SK_flag) = $(CY_flag);
 }
 
-:DNE EA, rp3_ is rp3_ & ... op2_6 = 0x3b & EA {
-    check_skip();
+:DNE EA, rp3_ is rp3_ & ... op2_6 = 0x3b & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     $(CY_flag) = EA < rp3_;
     $(HC_flag) = EAL < rp3_:1;
     $(Z_flag) = (EA - rp3_) == 0;
     $(SK_flag) = $(Z_flag) == 0;
 }
 
-:DEQ EA, rp3_ is rp3_ & ... op2_6 = 0x3f & EA {
-    check_skip();
+:DEQ EA, rp3_ is rp3_ & ... op2_6 = 0x3f & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     $(CY_flag) = EA < rp3_;
     $(HC_flag) = EAL < rp3_:1;
     $(Z_flag) = (EA - rp3_) == 0;
     $(SK_flag) = $(Z_flag);
 }
 
-:DON EA, rp3_ is rp3_ & ... op2_6 = 0x33 & EA {
-    check_skip();
+:DON EA, rp3_ is rp3_ & ... op2_6 = 0x33 & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     $(Z_flag) = (EA & rp3_) == 0;
     $(SK_flag) = $(Z_flag) == 0;
 }
 
-:DOFF EA, rp3_ is rp3_ & ... op2_6 = 0x37 & EA {
-    check_skip();
+:DOFF EA, rp3_ is rp3_ & ... op2_6 = 0x37 & EA [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     $(Z_flag) = (EA & rp3_) == 0;
     $(SK_flag) = $(Z_flag);
 }
@@ -1334,12 +1345,12 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :MUL r2_48 is r2_48 & ... op2_6 = 0x0b {
-    check_skip();
+    # check_skip();
     EA = EA * zext(r2_48);
 }
 
 :DIV r2_48 is r2_48 & ... op2_6 = 0x0f {
-    check_skip();
+    # check_skip();
     EA = EA / zext(r2_48);
     local rem:2 = EA % zext(r2_48);
     A = rem:1;
@@ -1349,43 +1360,43 @@ macro sub16WithBorrow(op1, op2) {
 # 14.6.9 Increment / decrement instructions                    #
 ################################################################
 
-:INR r2_ is op2_6 = 0x10 & r2_ {
+:INR r2_ is op2_6 = 0x10 & r2_ [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     add(r2_, 1);
     $(SK_flag) = $(CY_flag);
 }
 
-:INRW waMem8 is op0_8 = 0x20; waMem8 {
+:INRW waMem8 is op0_8 = 0x20; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     add(waMem8, 1);
     $(SK_flag) = $(CY_flag);
 }
 
 :INX rp_4_2 is op0_4 = 0x2 & op6_2 = 0x0 & rp_4_2 {
-    check_skip();
+    # check_skip();
     rp_4_2 = rp_4_2 + 1;
 }
 
 :INX EA is op0_8 = 0xa8 & EA {
-    check_skip();
+    # check_skip();
     EA = EA + 1;
 }
 
-:DCR r2_ is op2_6 = 0x14 & r2_ {
+:DCR r2_ is op2_6 = 0x14 & r2_ [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     sub(r2_, 1);
     $(SK_flag) = $(CY_flag);
 }
 
-:DCRW waMem8 is op0_8 = 0x30; waMem8 {
+:DCRW waMem8 is op0_8 = 0x30; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
     sub(waMem8, 1);
     $(SK_flag) = $(CY_flag);
 }
 
 :DCX rp_4_2 is op0_4 = 0x3 & op6_2 = 0x0 & rp_4_2 {
-    check_skip();
+    # check_skip();
     rp_4_2 = rp_4_2 - 1;
 }
 
 :DCX EA is op0_8 = 0xa9 & EA {
-    check_skip();
+    # check_skip();
     EA = EA - 1;
 }
 
@@ -1394,22 +1405,22 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :DAA is op0_8 = 0x61 {
-    check_skip();
+    # check_skip();
     BCDadjust();
 }
 
 :STC is op0_8 = 0x48; op0_8 = 0x2b {
-    check_skip();
+    # check_skip();
     $(CY_flag) = 1;
 }
 
 :CLC is op0_8 = 0x48; op0_8 = 0x2a {
-    check_skip();
+    # check_skip();
     $(CY_flag) = 0;
 }
 
 :NEGA is op0_8 = 0x48; op0_8 = 0x3a {
-    check_skip();
+    # check_skip();
     A = -A;
 }
 
@@ -1418,7 +1429,7 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :RLD is op0_8 = 0x48; op0_8 = 0x38 {
-    check_skip();
+    # check_skip();
     local val:1 = *:1 HL;
     nibA:1 = A & 0x0f;
     nibM:1 = val >> 4;
@@ -1427,7 +1438,7 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :RRD is op0_8 = 0x48; op0_8 = 0x39 {
-	check_skip();
+	# check_skip();
     local val:1 = *:1 HL;
 	nibA:1 = A & 0x0f;
 	nibM:1 = val & 0x0f;
@@ -1436,68 +1447,68 @@ macro sub16WithBorrow(op1, op2) {
 }
 
 :RLL r2_48 is r2_48 & ... op2_6 = 0x0d {
-    check_skip();
+    # check_skip();
     local nextCY:1 = r2_48 >> 7;
     r2_48 = (r2_48 << 1) | $(CY_flag);
     $(CY_flag) = nextCY;
 }
 
 :RLR r2_48 is r2_48 & ... op2_6 = 0x0c {
-    check_skip();
+    # check_skip();
     local nextCY = r2_48 & 1;
     r2_48 = (r2_48 >> 1) | (nextCY << 7);
     $(CY_flag) = nextCY;
 }
 
 :SLL r2_48 is r2_48 & ... op2_6 = 0x09 {
-    check_skip();
+    # check_skip();
     $(CY_flag) = r2_48 >> 7;
     r2_48 = r2_48 << 1;
 }
 
 :SLR r2_48 is r2_48 & ... op2_6 = 0x08 {
-    check_skip();
+    # check_skip();
     $(CY_flag) = r2_48 & 1;
     r2_48 = r2_48 >> 1;
 }
 
-:SLLC r2_48 is r2_48 & ... op2_6 = 0x01 {
-    check_skip();
+:SLLC r2_48 is r2_48 & ... op2_6 = 0x01 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     $(CY_flag) = r2_48 >> 7;
     r2_48 = r2_48 << 1;
     $(SK_flag) = $(CY_flag);
 }
 
-:SLRC r2_48 is r2_48 & ... op2_6 = 0x00 {
-    check_skip();
+:SLRC r2_48 is r2_48 & ... op2_6 = 0x00 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     $(CY_flag) = r2_48 & 1;
     r2_48 = r2_48 >> 1;
     $(SK_flag) = $(CY_flag);
 }
 
 :DRLL EA is op0_8 = 0x48; op0_8 = 0xb4 & EA {
-    check_skip();
+    # check_skip();
     local nextCY:2 = EA >> 15;
     EA = (EA << 1) | nextCY;
     $(CY_flag) = nextCY:1;
 }
 
 :DRLR EA is op0_8 = 0x48; op0_8 = 0xb0 & EA {
-    check_skip();
+    # check_skip();
     local nextCY:2 = EA & 1;
     EA = (EA >> 1) | (nextCY << 15);
     $(CY_flag) = nextCY:1;
 }
 
 :DSLL EA is op0_8 = 0x48; op0_8 = 0xa4 & EA {
-    check_skip();
+    # check_skip();
     local nextCY:2 = EA >> 15;
     EA = EA << 1;
     $(CY_flag) = nextCY:1;
 }
 
 :DSLR EA is op0_8 = 0x48; op0_8 = 0xa0 & EA {
-    check_skip();
+    # check_skip();
     local nextCY:2 = EA & 1;
     EA = EA >> 1;
     $(CY_flag) = nextCY:1;
@@ -1508,32 +1519,32 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :JMP Addr16 is op0_8 = 0x54; Addr16 {
-    check_skip();
+    # check_skip();
     goto Addr16;
 }
 
 :JB is op0_8 = 0x21 {
-    check_skip();
+    # check_skip();
     goto [BC];
 }
 
 :JR RelAddr6 is op6_2 = 0x3 & RelAddr6 {
-    check_skip();
+    # check_skip();
     goto RelAddr6;
 }
 
 :JRE RelAddr8_pos is op0_8 = 0x4e; RelAddr8_pos {
-    check_skip();
+    # check_skip();
     goto RelAddr8_pos;
 }
 
 :JRE RelAddr8_neg is op0_8 = 0x4f; RelAddr8_neg {
-    check_skip();
+    # check_skip();
     goto RelAddr8_neg;
 }
 
 :JEA is op0_8 = 0x48; op0_8 = 0x28 {
-    check_skip();
+    # check_skip();
     goto [EA];
 }
 
@@ -1542,14 +1553,14 @@ macro sub16WithBorrow(op1, op2) {
 ################################################################
 
 :CALL Addr16 is op0_8 = 0x40; Addr16 {
-    check_skip();
+    # check_skip();
     local tmp:2 = inst_next;
     push16(tmp);
     call Addr16;
 }
 
 :CALB is op0_8 = 0x48; op0_8 = 0x29 {
-    check_skip();
+    # check_skip();
     local tmp:2 = inst_next;
     push16(tmp);
     call [BC];
@@ -1558,14 +1569,14 @@ macro sub16WithBorrow(op1, op2) {
 faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:1 faloc;}
 
 :CALF faAddr is op3_5 = 0x0f ... & faAddr {
-    check_skip();
+    # check_skip();
     local tmp:2 = inst_next;
     push16(tmp);
     call faAddr;
 }
 
 :CALT loc is op5_3 = 0x4 & ta_0_5 [ loc = 0x0080 + (ta_0_5 << 1); ] {
-    check_skip();
+    # check_skip();
     local tmp:2 = inst_next;
     local ptr:2 = 0x0080 + (ta_0_5 << 2);
     local dest = *:2 ptr;
@@ -1574,7 +1585,7 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 }
 
 :SOFTI is op0_8 = 0x72 {
-    check_skip();
+    # check_skip();
     local tmp:2 = inst_next;
     push8(PSW);
     push16(tmp);
@@ -1586,14 +1597,14 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 ################################################################
 
 :RET is op0_8 = 0xb8 {
-    check_skip();
+    # check_skip();
     local tmp:2 = 0;
     pop16(tmp);
     return [tmp];
 }
 
-:RETS is op0_8 = 0xb9 {
-    check_skip();
+:RETS is op0_8 = 0xb9 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     local tmp:2 = 0;
     pop16(tmp);
     $(SK_flag) = 1;
@@ -1601,7 +1612,7 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 }
 
 :RETI is op0_8 = 0x62 {
-    check_skip();
+    # check_skip();
     local tmp:2 = 0;
     pop16(tmp);
     pop8(PSW);
@@ -1612,8 +1623,8 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 # 14.6.15 Skip instructions                                    #
 ################################################################
 
-:BIT bits0_3, waMem8 is op3_5 = 0x0b & bits0_3; waMem8 {
-    check_skip();
+:BIT bits0_3, waMem8 is op3_5 = 0x0b & bits0_3; waMem8 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     tmp:1 = bits0_3;
     wa:1 = waMem8;
     bit:1 = 0x1 << tmp;
@@ -1621,26 +1632,26 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
     $(SK_flag) = 1;
 }
 
-:SK flag_ is flag_ & ... op3_5 = 0x1 {
-    check_skip();
+:SK flag_ is flag_ & ... op3_5 = 0x1 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     if flag_ == 0 goto inst_next;
     $(SK_flag) = 1;
 }
 
-:SKN flag_ is flag_ & ... op3_5 = 0x3 {
-    check_skip();
+:SKN flag_ is flag_ & ... op3_5 = 0x3 [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     if flag_ == 1 goto inst_next;
     $(SK_flag) = 1;
 }
 
-:SKIT irf is op0_8 = 0x48; op5_3 = 0x2 & irf {
-    check_skip();
+:SKIT irf is op0_8 = 0x48; op5_3 = 0x2 & irf [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     if irf == 0 goto inst_next;
     $(SK_flag) = 1;
 }
 
-:SKNIT irf is op0_8 = 0x48; op5_3 = 0x3 & irf {
-    check_skip();
+:SKNIT irf is op0_8 = 0x48; op5_3 = 0x3 & irf [ possibleSkip = 1; globalset(inst_next,possibleSkip); ] {
+    # check_skip();
     if irf == 1 goto inst_next;
     $(SK_flag) = 1;
 }
@@ -1651,25 +1662,25 @@ faAddr: faloc is fah_0_3; imm8 [ faloc = 0x800+(fah_0_3 << 8)+imm8; ] {export *:
 ################################################################
 
 :NOP is op0_8 = 0x00 {
-    check_skip();
+    # check_skip();
 }
 
 :EI is op0_8 = 0xaa {
-    check_skip();
+    # check_skip();
     enableMaskableInterrupts();
 }
 
 :DI is op0_8 = 0xba {
-    check_skip();
+    # check_skip();
     disableMaskableInterrupts();
 }
 
 :HLT is op0_8 = 0x48; op0_8 = 0x3b {
-    check_skip();
+    # check_skip();
     halt();
 }
 
 :STOP is op0_8 = 0x48; op0_8 = 0xbb {
-    check_skip();
+    # check_skip();
     halt();
 }
