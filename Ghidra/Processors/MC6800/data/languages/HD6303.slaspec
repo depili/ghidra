@@ -223,13 +223,13 @@ macro PushEntireState(){
 # Pull 1 byte operand op1
 macro Pull1(op) {
 	op = *:1 SP;
-	reg = SP + 1;
+	SP = SP + 1;
 }
 
 # Pull 2 byte operand op2
 macro Pull2(op) {
 	op = *:2 SP;
-	reg = SP + 2;
+	SP = SP + 2;
 }
 
 # Addition
