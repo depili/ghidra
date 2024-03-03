@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<processor_spec>
+  <programcounter register="PC"/>
+  <default_symbols>
+    <symbol name="DDR1" address="0" entry="false"/>
+    <symbol name="DDR2" address="1" entry="false"/>
+    <symbol name="DR1" address="2" entry="false"/>
+    <symbol name="DR2" address="3" entry="false"/>
+    <symbol name="DDR3" address="4" entry="false"/>
+    <symbol name="DDR4" address="5" entry="false"/>
+    <symbol name="DR3" address="6" entry="false"/>
+    <symbol name="DR4" address="7" entry="false"/>
+    <symbol name="TCSR" address="8" entry="false"/>
+    <symbol name="CHR" address="9" entry="false"/>
+    <symbol name="CLR" address="A" entry="false"/>
+    <symbol name="OCHR" address="B" entry="false"/>
+    <symbol name="OCLR" address="C" entry="false"/>
+    <symbol name="ICHR" address="D" entry="false"/>
+    <symbol name="ICLR" address="E" entry="false"/>
+    <symbol name="CSR3" address="F" entry="false"/>
+    <symbol name="RMCR" address="10" entry="false"/>
+    <symbol name="TRCSR" address="11" entry="false"/>
+    <symbol name="RDR" address="12" entry="false"/>
+    <symbol name="TDR" address="13" entry="false"/>
+    <symbol name="RCR" address="14" entry="false"/>
+    <symbol name="TRAP" address="FFEE" entry="true" type="code_ptr"/>
+    <symbol name="SCI" address="FFF0" entry="true" type="code_ptr"/>
+    <symbol name="TOF" address="FFF2" entry="true" type="code_ptr"/>
+    <symbol name="OCF" address="FFF4" entry="true" type="code_ptr"/>
+    <symbol name="ICF" address="FFF6" entry="true" type="code_ptr"/>
+    <symbol name="IRQ1" address="FFF8" entry="true" type="code_ptr"/>
+    <symbol name="SWI" address="FFFA" entry="true" type="code_ptr"/>
+    <symbol name="NMI" address="FFFC" entry="true" type="code_ptr"/>
+    <symbol name="RESET" address="FFFE" entry="true" type="code_ptr"/>
+  </default_symbols>
+  <default_memory_blocks>
+    <memory_block name="IO" start_address="0" length="0x20" initialized="false"/>
+    <memory_block name="INT_RAM" start_address="0x80" length="0x80" initialized="false"/>
+  </default_memory_blocks>
+</processor_spec>
