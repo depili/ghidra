@@ -232,75 +232,25 @@ macro Pull2(op) {
 	reg = SP + 2;
 }
 
-:ABA				is (op=0x1B) { addition(A,B); }
-:ABX				is (op=0x3A) { IX=IX+zext(B); }
+# Addition
+:ABA				is (op=0x1B) 							{ addition(A,B); }
+:ABX				is (op=0x3A) 							{ IX=IX+zext(B); }
 :ADC accReg, OP2	is (op0_3=0x9) ... & accReg ... & OP2 	{ addCarry(accReg, OP2); }
 :ADD accReg, OP2	is (op0_3=0xB) ... & accReg ... & OP2 	{ addition(accReg, OP2); }
-
-#:ADD D, "#"imm16	is (op=0xC3) & D; imm16			{ add16(D, imm16); }
-#:ADD D, imm8		is (op=0xD3) & D; imm8			{ imm:2 = zext(imm8:1); tmp:2 = *:2 imm; add16(D, tmp); }
-#:ADD D, disp, IX	is (op=0xE3) & D & IX; disp		{ tmp:2 = *:2 (IX:2 + zext(disp:1)); add16(D, tmp); }
-#:ADD D, imm16		is (op=0xF3) & D; imm16			{ tmp:2 = *:2 imm16:2; add16(D, tmp); }
-
 :ADD D, DATA16		is (op6_7=0x3 & op0_3=0x3) ... & DATA16 & D { add16(D, DATA16); }
 
-:AIM "#"imm8, m8	is (op=0x71); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) & imm8; resultFlags(*:1 tmp); }
-:AIM "#"imm8, Disp	is (op=0x61); imm8; Disp		{ Disp = Disp & imm8; resultFlags(Disp); }
+# Substraction
+:SBA				is (op=0x10)							{ compareFlags(A, B); A = A - B; }
+:SBC accReg, OP2	is (op0_3=0x2) ... & accReg ... & OP2	{ compareFlags(accReg, OP2+C_flag); accReg = accReg - OP2 - C_flag; }
+:SUB accReg, OP2	is (op0_3=0x0) ... & accReg ... & OP2	{ compareFlags(accReg, OP2); accReg = accReg - OP2; }
+:SUB D, DATA16		is (op6_7=0x2 & op0_3=0x03) ... & DATA16 & D {compareFlags(D, DATA16); D = D - DATA16; }
 
-:AND accReg, OP2	is (op0_3=0x4) ... & accReg ... & OP2	{ accReg = accReg & OP2; resultFlags(accReg); }
-
-:ASL OP3			is (op0_3=0x8) ... & OP3		{ arithmeticShiftLeft(OP3); }
-
-:ASL D				is (op=0x05) & D		{
-	C_flag = ((D >> 15) != 0);
-	D = D << 1;
-	Z_flag = (D == 0);
-	N_flag = (D s< 0);
-	V_flag = (N_flag != 0) ^^ (C_flag != 0);
-}
-
-:ASR OP3			is (op0_3=0x7) ... & OP3		{ arithmeticShiftRight(OP3); }
-
-:BCC REL			is (op=0x24); REL		{ if (C_flag == 0) goto REL; }
-:BCS REL			is (op=0x25); REL		{ if (C_flag != 0) goto REL; }
-:BEQ REL			is (op=0x27); REL		{ if (Z_flag != 0) goto REL; }
-# Might require more work for CBA, CMP, SBA and SUB, page 44?
-:BGE REL			is (op=0x2C); REL		{ if (N_flag == V_flag) goto REL; }
-:BGT REL			is (op=0x2E); REL		{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0)) == 0) goto REL; }
-:BGI REL			is (op=0x22); REL		{ if ((Z_flag == 0) && (Z_flag == 0)) goto REL; }
-:BLE REL			is (op=0x2F); REL		{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0))) goto REL; }
-:BLS REL			is (op=0x23); REL		{ if ((C_flag != 0) || (Z_flag != 0)) goto REL; }
-:BLT REL			is (op=0x2D); REL		{ if ((N_flag != 0) ^^ (V_flag != 0)) goto REL; }
-:BNI REL			is (op=0x2B); REL		{ if (N_flag != 0) goto REL; }
-:BNE REL			is (op=0x26); REL		{ if (Z_flag == 0) goto REL; }
-:BPL REL			is (op=0x2A); REL		{ if (N_flag == 0) goto REL; }
-:BRA REL			is (op=0x20); REL		{ goto REL; }
-:BRN REL			is (op=0x21); REL		{ goto inst_next; }
-:BVS REL			is (op=0x29); REL		{ if (V_flag != 0) goto REL; }
-
-:BSR REL			is (op=0x8D); REL		{ PushRet(); call REL; }
-
-
-:BIT	accReg,OP2	is (op0_3=0x5) ... & accReg ... & OP2	{tmp:1 = accReg & OP2; resultFlags(tmp); }
-
-:CBA				is (op=0x11) 						{ compareFlags(A, B); }
-
-:CLC				is (op=0x0C)						{ C_flag = 0; }
-:CLI				is (op=0x0E)						{ I_flag = 0; }
-:CLV				is (op=0x0A)						{ V_flag = 0; }
-
-:CLR OP3			is (op0_3=0xF) ... & OP3			{ clear(OP3); }
-
-:CMP accReg, OP2	is (op0_3=0x1) ... & accReg ... & OP2	{ compareFlags(accReg, OP2); }
-
-:COM OP3			is (op0_3=0x2) ... & OP3			{ complement(OP3); }
-
-# PAge 69 break
-
-:CPX DATA16			is (op6_7=0x2 & op0_3=0xC) ... & DATA16	{ compareFlags(IX, DATA16); }
-
-:DAA    is op=0x19
-{
+# Misc math
+:MUL				is (op=0x3D)					{ D = zext(A) * zext(B); C_flag = D[15,1]; }
+:CLR OP3			is (op0_3=0xF) ... & OP3		{ clear(OP3); }
+:COM OP3			is (op0_3=0x2) ... & OP3		{ complement(OP3); }
+:NEG OP3			is (op0_3=0x00) ... & OP3		{ negate(OP3); }
+:DAA    is op=0x19 {
 	   local highA:1 = A >> 4;
 	   local lowA:1  = A & 0x0F;
 	   local cc1 = (C_flag == 1 | highA > 9 | (highA > 8) & (lowA > 9));
@@ -331,60 +281,35 @@ macro Pull2(op) {
 		   setNZFlags(A);
 }
 
-:DEC OP3		is (op0_3=0xA) ... & OP3				{ decrement(OP3); }
+# Branches
+:BCC REL			is (op=0x24); REL				{ if (C_flag == 0) goto REL; }
+:BCS REL			is (op=0x25); REL				{ if (C_flag != 0) goto REL; }
+:BEQ REL			is (op=0x27); REL				{ if (Z_flag != 0) goto REL; }
+:BGE REL			is (op=0x2C); REL				{ if (N_flag == V_flag) goto REL; }
+:BGT REL			is (op=0x2E); REL				{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0)) == 0) goto REL; }
+:BGI REL			is (op=0x22); REL				{ if ((Z_flag == 0) && (Z_flag == 0)) goto REL; }
+:BLE REL			is (op=0x2F); REL				{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0))) goto REL; }
+:BLS REL			is (op=0x23); REL				{ if ((C_flag != 0) || (Z_flag != 0)) goto REL; }
+:BLT REL			is (op=0x2D); REL				{ if ((N_flag != 0) ^^ (V_flag != 0)) goto REL; }
+:BNI REL			is (op=0x2B); REL				{ if (N_flag != 0) goto REL; }
+:BNE REL			is (op=0x26); REL				{ if (Z_flag == 0) goto REL; }
+:BPL REL			is (op=0x2A); REL				{ if (N_flag == 0) goto REL; }
+:BVS REL			is (op=0x29); REL				{ if (V_flag != 0) goto REL; }
 
-:DES			is (op=0x34) 							{ SP = SP - 1; }
-:DEX			is (op=0x09)							{ IX = IX - 1; Z_flag = (IX == 0); }
+# Calls
+:BSR REL			is (op=0x8D); REL				{ PushRet(); call REL; }
+:JSR mem16		is (op=0xBD); mem16					{ PushRet(); call mem16; }
+:JSR Disp		is (op=0xAD); Disp					{ PushRet(); call Disp; }
+:JSR mem8		is (op=0x9D); mem8					{ PushRet(); call mem8; }
 
-:EIM "#"imm8, m8	is (op=0x75); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) ^ imm8; resultFlags(*:1 tmp); }
-:EIM "#"imm8, Disp	is (op=0x65); imm8; Disp		{ Disp = Disp ^ imm8; resultFlags(Disp); }
+# Jumps
+:JMP mem16		is (op=0x7e); mem16					{ goto mem16; }
+:JMP Disp		is (op=0x6e); Disp					{ goto Disp; }
+:BRA REL			is (op=0x20); REL				{ goto REL; }
+:BRN REL			is (op=0x21); REL				{ goto inst_next; }
 
-:EOR accReg, OP2	is (op0_3=0x8) ... & accReg ... & OP2	{ accReg = accReg ^ OP2; resultFlags(accReg); }
-
-:INC OP3		is (op0_3=0xC) ... & OP3				{ increment(OP3); }
-
-:INS			is (op=0x31)							{ SP = SP + 1; }
-:INX			is (op=0x08)							{ IX = IX + 1; Z_flag = (IX == 0); }
-
-:JMP mem16		is (op=0x7e); mem16						{ goto mem16; }
-:JMP Disp		is (op=0x6e); Disp						{ goto Disp; }
-
-:JSR mem16		is (op=0xBD); mem16						{ PushRet(); call mem16; }
-:JSR Disp		is (op=0xAD); Disp						{ PushRet(); call Disp; }
-:JSR mem8		is (op=0x9D); mem8						{ PushRet(); call mem8; }
-
-:LDA accReg, OP2	is (op0_3=0x6) ... & accReg ... & OP2 { accReg = OP2; resultFlags(accReg); }
-
-:LDD DATA16		is (op6_7=0x3 & op0_3=0xC) ... & DATA16	{ D = DATA16; resultFlags(D); }
-:LDS DATA16		is (op6_7=0x2 & op0_3=0xE) ... & DATA16 { SP = DATA16; resultFlags(SP); }
-:LDX DATA16		is (op6_7=0x3 & op0_3=0xE) ... & DATA16	{ IX = DATA16; resultFlags(IX); }
-
-:LSR OP3		is (op0_3=0x4) ... & OP3				{ logicalShiftRight(OP3); }
-:LSR D			is (op=0x04) & D						{ logicalShiftRight(D); }
-
-:MUL			is (op=0x3D)							{ D = zext(A) * zext(B); C_flag = D[15,1]; }
-
-:NEG OP3		is (op0_3=0x00) ... & OP3				{ negate(OP3); }
-
-:NOP			is (op=0x01)							{}
-
-:OIM "#"imm8, m8	is (op=0x72); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) | imm8; resultFlags(*:1 tmp); }
-:OIM "#"imm8, Disp	is (op=0x62); imm8; Disp		{ Disp = Disp | imm8; resultFlags(Disp); }
-
-:ORA accReg, OP2	is (op0_3=0xA) ... & accReg ... & OP2	{ accReg = accReg | OP2; resultFlags(accReg); }
-
-:PSH A				is (op=0x36) & A				{ Push1(A); }
-:PSH B				is (op=0x37) & B				{ Push1(B); }
-:PSHX				is (op=0x3C)					{ Push2(IX); }
-
-:PUL A				is (op=0x32) & A				{ Pull1(A); }
-:PUL B				is (op=0x33) & B				{ Pull1(B); }
-:PULX				is (op=0x38)					{ Pull2(IX); }
-
-:ROL OP3			is (op0_3=0x9) ... & OP3		{ rotateLeftWithCarry(OP3); }
-:ROR OP3			is (op0_3=0x6) ... & OP3		{ rotateRightWithCarry(OP3); }
-
-:RTI				is (op=0x3B)					{
+# Returns
+:RTI				is (op=0x3B) {
 	local addr:2;
 	Pull1(CCR);
 	# TODO: unpack flags
@@ -395,54 +320,103 @@ macro Pull2(op) {
 	Pull2(addr);
 	return [addr];
 }
+:RTS				is (op=0x39) 					{ local addr:2; Pull2(addr); return [addr]; }
 
-:RTS				is (op=0x39) {
-	local addr:2;
-	Pull2(addr);
-	return [addr];
-}
+# Compares etc
+:BIT	accReg,OP2	is (op0_3=0x5) ... & accReg ... & OP2	{tmp:1 = accReg & OP2; resultFlags(tmp); }
+:CBA				is (op=0x11) 					{ compareFlags(A, B); }
+:CMP accReg, OP2	is (op0_3=0x1) ... & accReg ... & OP2	{ compareFlags(accReg, OP2); }
+:CPX DATA16			is (op6_7=0x2 & op0_3=0xC) ... & DATA16	{ compareFlags(IX, DATA16); }
+:TIM "#"imm8, mem8 	is (op=0x7B); imm8; mem8		{ tmp = imm8 & mem8; resultFlags(tmp); }
+:TIM "#"imm8, Disp	is (op=0x6B); imm8; Disp		{ tmp = imm8 & Disp; resultFlags(tmp); }
+:TST OP3			is (op0_3=0xD) ... & OP3		{ resultFlags(OP3); C_flag = 0; }
 
-:SBA				is (op=0x10)				{ compareFlags(A, B); A = A - B; }
-:SBC accReg, OP2	is (op0_3=0x2) ... & accReg ... & OP2	{ compareFlags(accReg, OP2+C_flag); accReg = accReg - OP2 - C_flag; }
+# Set flags
+:CLC				is (op=0x0C)					{ C_flag = 0; }
+:CLI				is (op=0x0E)					{ I_flag = 0; }
+:CLV				is (op=0x0A)					{ V_flag = 0; }
 
-:SEC				is (op=0x0D)				{ C_flag = 1; }
-:SEI				is (op=0x0F)				{ I_flag = 1; }
-:SEV				is (op=0x0B)				{ V_flag = 1; }
+# Clear flags
+:SEC				is (op=0x0D)					{ C_flag = 1; }
+:SEI				is (op=0x0F)					{ I_flag = 1; }
+:SEV				is (op=0x0B)					{ V_flag = 1; }
 
-:SLP				is (op=0x1A)				{ sleep(); }
+# Increments
+:INC OP3			is (op0_3=0xC) ... & OP3		{ increment(OP3); }
+:INS				is (op=0x31)					{ SP = SP + 1; }
+:INX				is (op=0x08)					{ IX = IX + 1; Z_flag = (IX == 0); }
 
+# Decrements
+:DEC OP3			is (op0_3=0xA) ... & OP3		{ decrement(OP3); }
+:DES				is (op=0x34) 					{ SP = SP - 1; }
+:DEX				is (op=0x09)					{ IX = IX - 1; Z_flag = (IX == 0); }
+
+# xor
+:EIM "#"imm8, m8	is (op=0x75); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) ^ imm8; resultFlags(*:1 tmp); }
+:EIM "#"imm8, Disp	is (op=0x65); imm8; Disp		{ Disp = Disp ^ imm8; resultFlags(Disp); }
+:EOR accReg, OP2	is (op0_3=0x8) ... & accReg ... & OP2	{ accReg = accReg ^ OP2; resultFlags(accReg); }
+# or
+:OIM "#"imm8, m8	is (op=0x72); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) | imm8; resultFlags(*:1 tmp); }
+:OIM "#"imm8, Disp	is (op=0x62); imm8; Disp		{ Disp = Disp | imm8; resultFlags(Disp); }
+:ORA accReg, OP2	is (op0_3=0xA) ... & accReg ... & OP2	{ accReg = accReg | OP2; resultFlags(accReg); }
+# and
+:AIM "#"imm8, m8	is (op=0x71); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) & imm8; resultFlags(*:1 tmp); }
+:AIM "#"imm8, Disp	is (op=0x61); imm8; Disp		{ Disp = Disp & imm8; resultFlags(Disp); }
+:AND accReg, OP2	is (op0_3=0x4) ... & accReg ... & OP2	{ accReg = accReg & OP2; resultFlags(accReg); }
+
+# Loads
+:LDA accReg, OP2	is (op0_3=0x6) ... & accReg ... & OP2 { accReg = OP2; resultFlags(accReg); }
+:LDD DATA16			is (op6_7=0x3 & op0_3=0xC) ... & DATA16	{ D = DATA16; resultFlags(D); }
+:LDS DATA16			is (op6_7=0x2 & op0_3=0xE) ... & DATA16 { SP = DATA16; resultFlags(SP); }
+:LDX DATA16			is (op6_7=0x3 & op0_3=0xE) ... & DATA16	{ IX = DATA16; resultFlags(IX); }
+
+# Stores
 :STA accReg, OP2	is (op0_3=0x7) ... & accReg ... & OP2	{ OP2 = accReg; resultFlags(OP2); }
 :STD DATA16			is (op6_7=0x3 & op0_3=0xD) ... & DATA16	{ DATA16 = D; resultFlags(D); }
 :STS DATA16			is (op6_7=0x2 & op0_3=0xF) ... & DATA16 { DATA16 = SP; resultFlags(SP); }
 :STX DATA16			is (op6_7=0x3 & op0_3=0xF) ... & DATA16 { DATA16 = IX; resultFlags(IX); }
 
-:SUB accReg, OP2	is (op0_3=0x0) ... & accReg ... & OP2	{ compareFlags(accReg, OP2); accReg = accReg - OP2; }
+# Bit shifts, rotates
+:ASL OP3			is (op0_3=0x8) ... & OP3		{ arithmeticShiftLeft(OP3); }
+:ASL D				is (op=0x05) & D {
+	C_flag = ((D >> 15) != 0);
+	D = D << 1;
+	Z_flag = (D == 0);
+	N_flag = (D s< 0);
+	V_flag = (N_flag != 0) ^^ (C_flag != 0);
+}
+:ASR OP3			is (op0_3=0x7) ... & OP3		{ arithmeticShiftRight(OP3); }
+:LSR OP3			is (op0_3=0x4) ... & OP3		{ logicalShiftRight(OP3); }
+:LSR D				is (op=0x04) & D				{ logicalShiftRight(D); }
+:ROL OP3			is (op0_3=0x9) ... & OP3		{ rotateLeftWithCarry(OP3); }
+:ROR OP3			is (op0_3=0x6) ... & OP3		{ rotateRightWithCarry(OP3); }
 
-:SUB D, DATA16		is (op6_7=0x2 & op0_3=0x03) ... & DATA16 & D {compareFlags(D, DATA16); D = D - DATA16; }
+# Stack
+:PSH A				is (op=0x36) & A				{ Push1(A); }
+:PSH B				is (op=0x37) & B				{ Push1(B); }
+:PSHX				is (op=0x3C)					{ Push2(IX); }
+:PUL A				is (op=0x32) & A				{ Pull1(A); }
+:PUL B				is (op=0x33) & B				{ Pull1(B); }
+:PULX				is (op=0x38)					{ Pull2(IX); }
 
-:SWI				is (op=0x3F)				{
+# Register transfers
+:TAB				is (op=0x16)					{ B = A; resultFlags(B); }
+# TODO: unpack flags
+:TAP				is (op=0x06)					{ CCR = A; }
+:TBA				is (op=0x17)					{ A = B; resultFlags(A); }
+# TODO: pack flags
+:TPA				is (op=0x07)					{ A = CCR; }
+:TSX				is (op=0x30)					{ IX = SP; }
+:TXS				is (op=0x35)					{ SP = IX; }
+:XGDX				is (op=0x18)					{ tmp = IX; IX = D; D = tmp; }
+
+# Misc
+:SWI				is (op=0x3F) {
 	PushEntireState();
 	I_flag = 1;
 	tmp:2 = $(SWI_VECTOR);
 	call [tmp];
 }
-
-:TAB				is (op=0x16)			{ B = A; resultFlags(B); }
-# TODO: unpack flags
-:TAP				is (op=0x06)			{ CCR = A; }
-:TBA				is (op=0x17)			{ A = B; resultFlags(A); }
-
-:TIM "#"imm8, mem8 	is (op=0x7B); imm8; mem8	{ tmp = imm8 & mem8; resultFlags(tmp); }
-:TIM "#"imm8, Disp	is (op=0x6B); imm8; Disp	{ tmp = imm8 & Disp; resultFlags(tmp); }
-
-# TODO: pack flags
-:TPA				is (op=0x07)			{ A = CCR; }
-
-:TST OP3			is (op0_3=0xD) ... & OP3	{ resultFlags(OP3); C_flag = 0; }
-
-:TSX				is (op=0x30)				{ IX = SP; }
-:TXS				is (op=0x35)				{ SP = IX; }
-
-:WAI				is (op=0x3E)				{ wait_irq(); }
-
-:XGDX				is (op=0x18)				{ tmp = IX; IX = D; D = tmp; }
+:NOP			is (op=0x01)						{}
+:WAI				is (op=0x3E)					{ wait_irq(); }
+:SLP				is (op=0x1A)					{ sleep(); }
