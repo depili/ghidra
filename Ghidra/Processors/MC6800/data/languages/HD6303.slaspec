@@ -334,7 +334,7 @@ macro Pull2(op) {
 :DEC OP3		is (op0_3=0xA) ... & OP3				{ decrement(OP3); }
 
 :DES			is (op=0x34) 							{ SP = SP - 1; }
-:DEX			is (op=0x09)							{ IX = IX - 1; }
+:DEX			is (op=0x09)							{ IX = IX - 1; Z_flag = (IX == 0); }
 
 :EIM "#"imm8, m8	is (op=0x75); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) ^ imm8; resultFlags(*:1 tmp); }
 :EIM "#"imm8, Disp	is (op=0x65); imm8; Disp		{ Disp = Disp ^ imm8; resultFlags(Disp); }
@@ -344,7 +344,7 @@ macro Pull2(op) {
 :INC OP3		is (op0_3=0xC) ... & OP3				{ increment(OP3); }
 
 :INS			is (op=0x31)							{ SP = SP + 1; }
-:INX			is (op=0x08)							{ IX = IX + 1; }
+:INX			is (op=0x08)							{ IX = IX + 1; Z_flag = (IX == 0); }
 
 :JMP mem16		is (op=0x7e); mem16						{ goto mem16; }
 :JMP Disp		is (op=0x6e); Disp						{ goto Disp; }
