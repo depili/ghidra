@@ -42,24 +42,24 @@ mem8: imm8		is imm8				{ export *:1 imm8; }
 
 REL: reloc		is rel [ reloc = inst_next + rel; ] { export *:2 reloc; }
 
-Disp: disp, IX		is disp & IX	{ tmp:2 = IX:2 + zext(disp:1); export *:1 tmp; }
-Disp16: disp, IX	is disp & IX	{ tmp:2 = IX:2 + zext(disp:1); export *:2 tmp; }
+disp8: imm8, IX		is IX & imm8	{ tmp:2 = IX + imm8; export *:1 tmp; }
+disp16: imm8, IX	is IX & imm8	{ tmp:2 = IX + imm8; export *:2 tmp; }
 
 OP2: "#"imm8	is (op4_5=0); imm8		{ tmp:1 = imm8; export tmp; }
 OP2: m8			is (op4_5=1); m8		{ export *:1 m8; }
-OP2: disp, IX	is (op4_5=2) & IX; disp	{ tmp:2 = IX:2+ zext(disp:1); export *:1 tmp; }
+OP2: disp8		is (op4_5=2); disp8		{ export disp8; }
 OP2: imm16		is (op4_5=3); imm16		{ export *:1 imm16; }
 
 OP3: A			is (op4_7=0x4) & A						{ export A; }
 OP3: B			is (op4_7=0x5) & B						{ export B; }
-OP3: Disp		is (op4_7=0x6); Disp					{ export Disp; }
+OP3: disp8		is (op4_7=0x6); disp8					{ export disp8; }
 OP3: mem16		is (op4_7=0x7); mem16					{ export mem16; }
 
 
 
 DATA16: "#"imm16 is (op4_5=0); imm16					{ tmp:2 = imm16:2; export tmp; }
 DATA16: imm8	is (op4_5=1); imm8						{ export *:2 imm8; }
-DATA16: Disp16	is (op4_5=2); Disp16					{ export Disp16; }
+DATA16: disp16	is (op4_5=2); disp16					{ export disp16; }
 DATA16: imm16	is (op4_5=3); imm16						{ export *:2 imm16; }
 
 macro halfCarry(op1, op2) {
@@ -298,13 +298,13 @@ macro Pull2(op) {
 
 # Calls
 :BSR REL			is (op=0x8D); REL				{ PushRet(); call REL; }
-:JSR mem16		is (op=0xBD); mem16					{ PushRet(); call mem16; }
-:JSR Disp		is (op=0xAD); Disp					{ PushRet(); call Disp; }
-:JSR mem8		is (op=0x9D); mem8					{ PushRet(); call mem8; }
+:JSR mem16			is (op=0xBD); mem16				{ PushRet(); call mem16; }
+:JSR imm8, IX		is (op=0xAD); imm8 & IX			{ PushRet(); tmp:2 = IX + imm8; call [tmp]; }
+:JSR mem8			is (op=0x9D); mem8				{ PushRet(); call mem8; }
 
 # Jumps
-:JMP mem16		is (op=0x7e); mem16					{ goto mem16; }
-:JMP Disp		is (op=0x6e); Disp					{ goto Disp; }
+:JMP mem16			is (op=0x7e); mem16				{ goto mem16; }
+:JMP imm8, IX		is (op=0x6e); imm8 & IX			{ tmp:2 = IX + imm8; goto [tmp]; }
 :BRA REL			is (op=0x20); REL				{ goto REL; }
 :BRN REL			is (op=0x21); REL				{ goto inst_next; }
 
@@ -328,7 +328,7 @@ macro Pull2(op) {
 :CMP accReg, OP2	is (op0_3=0x1) ... & accReg ... & OP2	{ compareFlags(accReg, OP2); }
 :CPX DATA16			is (op6_7=0x2 & op0_3=0xC) ... & DATA16	{ compareFlags(IX, DATA16); }
 :TIM "#"imm8, mem8 	is (op=0x7B); imm8; mem8		{ tmp = imm8 & mem8; resultFlags(tmp); }
-:TIM "#"imm8, Disp	is (op=0x6B); imm8; Disp		{ tmp = imm8 & Disp; resultFlags(tmp); }
+:TIM "#"imm8, disp8	is (op=0x6B); imm8; disp8		{ tmp = imm8 & disp8; resultFlags(tmp); }
 :TST OP3			is (op0_3=0xD) ... & OP3		{ resultFlags(OP3); C_flag = 0; }
 
 # Set flags
@@ -353,15 +353,15 @@ macro Pull2(op) {
 
 # xor
 :EIM "#"imm8, m8	is (op=0x75); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) ^ imm8; resultFlags(*:1 tmp); }
-:EIM "#"imm8, Disp	is (op=0x65); imm8; Disp		{ Disp = Disp ^ imm8; resultFlags(Disp); }
+:EIM "#"imm8, disp8	is (op=0x65); imm8; disp8		{ disp8 = disp8 ^ imm8; resultFlags(disp8); }
 :EOR accReg, OP2	is (op0_3=0x8) ... & accReg ... & OP2	{ accReg = accReg ^ OP2; resultFlags(accReg); }
 # or
 :OIM "#"imm8, m8	is (op=0x72); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) | imm8; resultFlags(*:1 tmp); }
-:OIM "#"imm8, Disp	is (op=0x62); imm8; Disp		{ Disp = Disp | imm8; resultFlags(Disp); }
+:OIM "#"imm8, disp8	is (op=0x62); imm8; disp8		{ disp8 = disp8 | imm8; resultFlags(disp8); }
 :ORA accReg, OP2	is (op0_3=0xA) ... & accReg ... & OP2	{ accReg = accReg | OP2; resultFlags(accReg); }
 # and
 :AIM "#"imm8, m8	is (op=0x71); imm8; m8			{ tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) & imm8; resultFlags(*:1 tmp); }
-:AIM "#"imm8, Disp	is (op=0x61); imm8; Disp		{ Disp = Disp & imm8; resultFlags(Disp); }
+:AIM "#"imm8, disp8	is (op=0x61); imm8; disp8		{ disp8 = disp8 & imm8; resultFlags(disp8); }
 :AND accReg, OP2	is (op0_3=0x4) ... & accReg ... & OP2	{ accReg = accReg & OP2; resultFlags(accReg); }
 
 # Loads
