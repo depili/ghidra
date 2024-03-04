@@ -201,8 +201,8 @@ macro Push2(op) {
 }
 
 macro PushRet() {
-	*:2 SP = inst_next;
 	SP = SP - 2;
+	*:2 SP = inst_next;
 }
 
 macro PushEntireState(){
@@ -217,14 +217,14 @@ macro PushEntireState(){
 
 # Pull 1 byte operand op1
 macro Pull1(op) {
-	SP = SP + 1;
 	op = *:1 SP;
+	SP = SP + 1;
 }
 
 # Pull 2 byte operand op2
 macro Pull2(op) {
-	SP = SP + 2;
 	op = *:2 SP;
+	SP = SP + 2;
 }
 
 # Addition
