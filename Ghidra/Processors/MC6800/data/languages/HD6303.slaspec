@@ -62,6 +62,21 @@ DATA16: imm8	is (op4_5=1); imm8						{ export *:2 imm8; }
 DATA16: disp16	is (op4_5=2); disp16					{ export disp16; }
 DATA16: imm16	is (op4_5=3); imm16						{ export *:2 imm16; }
 
+
+macro packFlags(res) {
+  res = (H_flag<<5)|(I_flag<<4)|(N_flag<<3)|(Z_flag<<2)|(V_flag<<1)|(C_flag);
+}
+
+macro unpackFlags(in) {
+  H_flag = (in & 0x20) != 0;
+  I_flag = (in & 0x10) != 0;
+  N_flag = (in & 0x08) != 0;
+  Z_flag = (in & 0x04) != 0;
+  V_flag = (in & 0x02) != 0;
+  C_flag = (in & 0x01) != 0;
+}
+
+
 macro halfCarry(op1, op2) {
 	local halfop1 = op1 & 0xF;
 	local halfop2 = op2 & 0xF;
@@ -210,7 +225,7 @@ macro PushEntireState(){
 	Push2(IX);
 	Push1(A);
 	Push1(B);
-	# TODO: Pack flags
+	packFlags(CCR);
 	Push1(CCR);
 }
 
@@ -307,7 +322,7 @@ macro Pull2(op) {
 :RTI				is (op=0x3B) {
 	local addr:2;
 	Pull1(CCR);
-	# TODO: unpack flags
+	unpackFlags(CCR);
 	Pull1(A);
 	Pull1(B);
 	Pull1(IXH);
@@ -396,11 +411,9 @@ macro Pull2(op) {
 
 # Register transfers
 :TAB				is (op=0x16)					{ B = A; resultFlags(B); }
-# TODO: unpack flags
-:TAP				is (op=0x06)					{ CCR = A; }
+:TAP				is (op=0x06)					{ CCR = A; unpackFlags(CCR); }
 :TBA				is (op=0x17)					{ A = B; resultFlags(A); }
-# TODO: pack flags
-:TPA				is (op=0x07)					{ A = CCR; }
+:TPA				is (op=0x07)					{ packFlags(CCR); A = CCR; }
 :TSX				is (op=0x30)					{ IX = SP; }
 :TXS				is (op=0x35)					{ SP = IX; }
 :XGDX				is (op=0x18)					{ tmp = IX; IX = D; D = tmp; }
