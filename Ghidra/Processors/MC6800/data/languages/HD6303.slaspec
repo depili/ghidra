@@ -291,33 +291,33 @@ macro Pull2(op) {
 		   setNZFlags(A);
 }
 
+# Jumps
+:JMP mem16			is (op=0x7e); mem16				{ goto mem16; }
+:JMP imm8, IX		is (op=0x6e); imm8 & IX			{ tmp:2 = IX + imm8; goto [tmp]; }
+:BRA REL			is (op=0x20); REL				{ goto REL; }
+:BRN REL			is (op=0x21); REL				{ goto inst_next; }
+
 # Branches
+:BGI REL			is (op=0x22); REL				{ if ((Z_flag == 0) && (Z_flag == 0)) goto REL; }
+:BLS REL			is (op=0x23); REL				{ if ((C_flag != 0) || (Z_flag != 0)) goto REL; }
 :BCC REL			is (op=0x24); REL				{ if (C_flag == 0) goto REL; }
 :BCS REL			is (op=0x25); REL				{ if (C_flag != 0) goto REL; }
+:BNE REL			is (op=0x26); REL				{ if (Z_flag == 0) goto REL; }
 :BEQ REL			is (op=0x27); REL				{ if (Z_flag != 0) goto REL; }
 :BVC REL			is (op=0x28); REL				{ if (V_flag == 0) goto REL; }
-:BGE REL			is (op=0x2C); REL				{ if (N_flag == V_flag) goto REL; }
-:BGT REL			is (op=0x2E); REL				{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0)) == 0) goto REL; }
-:BGI REL			is (op=0x22); REL				{ if ((Z_flag == 0) && (Z_flag == 0)) goto REL; }
-:BLE REL			is (op=0x2F); REL				{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0))) goto REL; }
-:BLS REL			is (op=0x23); REL				{ if ((C_flag != 0) || (Z_flag != 0)) goto REL; }
-:BLT REL			is (op=0x2D); REL				{ if ((N_flag != 0) ^^ (V_flag != 0)) goto REL; }
-:BNI REL			is (op=0x2B); REL				{ if (N_flag != 0) goto REL; }
-:BNE REL			is (op=0x26); REL				{ if (Z_flag == 0) goto REL; }
-:BPL REL			is (op=0x2A); REL				{ if (N_flag == 0) goto REL; }
 :BVS REL			is (op=0x29); REL				{ if (V_flag != 0) goto REL; }
+:BPL REL			is (op=0x2A); REL				{ if (N_flag == 0) goto REL; }
+:BNI REL			is (op=0x2B); REL				{ if (N_flag != 0) goto REL; }
+:BGE REL			is (op=0x2C); REL				{ if (N_flag == V_flag) goto REL; }
+:BLT REL			is (op=0x2D); REL				{ if ((N_flag != 0) ^^ (V_flag != 0)) goto REL; }
+:BGT REL			is (op=0x2E); REL				{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0)) == 0) goto REL; }
+:BLE REL			is (op=0x2F); REL				{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0))) goto REL; }
 
 # Calls
 :BSR REL			is (op=0x8D); REL				{ PushRet(); call REL; }
 :JSR mem16			is (op=0xBD); mem16				{ PushRet(); call mem16; }
 :JSR imm8, IX		is (op=0xAD); imm8 & IX			{ PushRet(); tmp:2 = IX + imm8; call [tmp]; }
 :JSR mem8			is (op=0x9D); mem8				{ PushRet(); call mem8; }
-
-# Jumps
-:JMP mem16			is (op=0x7e); mem16				{ goto mem16; }
-:JMP imm8, IX		is (op=0x6e); imm8 & IX			{ tmp:2 = IX + imm8; goto [tmp]; }
-:BRA REL			is (op=0x20); REL				{ goto REL; }
-:BRN REL			is (op=0x21); REL				{ goto inst_next; }
 
 # Returns
 :RTI				is (op=0x3B) {
