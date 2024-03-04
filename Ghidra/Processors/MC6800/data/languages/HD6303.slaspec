@@ -122,7 +122,7 @@ macro add16(op1, op2) {
 }
 
 macro compareFlags(op1, op2) {
-	setNZFlags(op1+op2);
+	setNZFlags(op1-op2);
 	V_flag = sborrow(op1, op2);
 	C_flag = op1 < op2;
 }
