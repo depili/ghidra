@@ -295,6 +295,7 @@ macro Pull2(op) {
 :BCC REL			is (op=0x24); REL				{ if (C_flag == 0) goto REL; }
 :BCS REL			is (op=0x25); REL				{ if (C_flag != 0) goto REL; }
 :BEQ REL			is (op=0x27); REL				{ if (Z_flag != 0) goto REL; }
+:BVC REL			is (op=0x28); REL				{ if (V_flag == 0) goto REL; }
 :BGE REL			is (op=0x2C); REL				{ if (N_flag == V_flag) goto REL; }
 :BGT REL			is (op=0x2E); REL				{ if ((Z_flag != 0) || ((N_flag != 0) ^^ (V_flag != 0)) == 0) goto REL; }
 :BGI REL			is (op=0x22); REL				{ if ((Z_flag == 0) && (Z_flag == 0)) goto REL; }
