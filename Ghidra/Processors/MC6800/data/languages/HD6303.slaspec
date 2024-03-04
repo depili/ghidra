@@ -6,8 +6,8 @@ define alignment=1;
 define space RAM		type=ram_space		size=2	default;
 define space register	type=register_space	size=1;
 
-define register offset=0x00 size=1 [A B IXL IXH SPL SPH PCL PCH CCR];
-define register offset=0x00 size=2 [D   IX       SP     PC];
+define register offset=0x00 size=1 [A B IXH IXL SPH SPL PCH PCL CCR];
+define register offset=0x00 size=2 [D   IX      SP      PC];
 
 # Status bits, pseudo registers
 define register offset=0x80 size=1 [H_flag I_flag N_flag Z_flag V_flag C_flag];
