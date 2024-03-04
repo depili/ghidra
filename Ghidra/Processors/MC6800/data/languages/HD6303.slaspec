@@ -37,30 +37,30 @@ define token data16 (16)
 	imm16	= (0,15)
 ;
 
-mem16: imm16	is imm16			{ export *:1 imm16; }
-mem8: imm8		is imm8				{ export *:1 imm8; }
+mem16: imm16	is imm16							{ export *:1 imm16; }
+mem8: imm8		is imm8								{ export *:1 imm8; }
 
 REL: reloc		is rel [ reloc = inst_next + rel; ] { export *:2 reloc; }
 
-disp8: imm8, IX		is IX & imm8	{ tmp:2 = IX + imm8; export *:1 tmp; }
-disp16: imm8, IX	is IX & imm8	{ tmp:2 = IX + imm8; export *:2 tmp; }
+disp8: imm8, IX		is IX & imm8					{ tmp:2 = IX + imm8; export *:1 tmp; }
+disp16: imm8, IX	is IX & imm8					{ tmp:2 = IX + imm8; export *:2 tmp; }
 
-OP2: "#"imm8	is (op4_5=0); imm8		{ tmp:1 = imm8; export tmp; }
-OP2: m8			is (op4_5=1); m8		{ export *:1 m8; }
-OP2: disp8		is (op4_5=2); disp8		{ export disp8; }
-OP2: imm16		is (op4_5=3); imm16		{ export *:1 imm16; }
+OP2: "#"imm8	is (op4_5=0); imm8					{ tmp:1 = imm8; export tmp; }
+OP2: m8			is (op4_5=1); m8					{ export *:1 m8; }
+OP2: disp8		is (op4_5=2); disp8					{ export disp8; }
+OP2: imm16		is (op4_5=3); imm16					{ export *:1 imm16; }
 
-OP3: A			is (op4_7=0x4) & A						{ export A; }
-OP3: B			is (op4_7=0x5) & B						{ export B; }
-OP3: disp8		is (op4_7=0x6); disp8					{ export disp8; }
-OP3: mem16		is (op4_7=0x7); mem16					{ export mem16; }
+OP3: A			is (op4_7=0x4) & A					{ export A; }
+OP3: B			is (op4_7=0x5) & B					{ export B; }
+OP3: disp8		is (op4_7=0x6); disp8				{ export disp8; }
+OP3: mem16		is (op4_7=0x7); mem16				{ export mem16; }
 
 
 
-DATA16: "#"imm16 is (op4_5=0); imm16					{ tmp:2 = imm16:2; export tmp; }
-DATA16: imm8	is (op4_5=1); imm8						{ export *:2 imm8; }
-DATA16: disp16	is (op4_5=2); disp16					{ export disp16; }
-DATA16: imm16	is (op4_5=3); imm16						{ export *:2 imm16; }
+DATA16: "#"imm16 is (op4_5=0); imm16				{ tmp:2 = imm16:2; export tmp; }
+DATA16: imm8	is (op4_5=1); imm8					{ export *:2 imm8; }
+DATA16: disp16	is (op4_5=2); disp16				{ export disp16; }
+DATA16: imm16	is (op4_5=3); imm16					{ export *:2 imm16; }
 
 
 macro packFlags(res) {
