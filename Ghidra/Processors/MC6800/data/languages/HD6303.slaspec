@@ -341,15 +341,13 @@ macro Pull2(op) {
 :TIM "#"imm8, disp8	is (op=0x6B); imm8; disp8		{ tmp = imm8 & disp8; resultFlags(tmp); }
 :TST OP3			is (op0_3=0xD) ... & OP3		{ resultFlags(OP3); C_flag = 0; }
 
-# Set flags
-:CLC				is (op=0x0C)					{ C_flag = 0; }
-:CLI				is (op=0x0E)					{ I_flag = 0; }
+# Set & clear flags
 :CLV				is (op=0x0A)					{ V_flag = 0; }
-
-# Clear flags
-:SEC				is (op=0x0D)					{ C_flag = 1; }
-:SEI				is (op=0x0F)					{ I_flag = 1; }
 :SEV				is (op=0x0B)					{ V_flag = 1; }
+:CLC				is (op=0x0C)					{ C_flag = 0; }
+:SEC				is (op=0x0D)					{ C_flag = 1; }
+:CLI				is (op=0x0E)					{ I_flag = 0; }
+:SEI				is (op=0x0F)					{ I_flag = 1; }
 
 # Increments
 :INC OP3			is (op0_3=0xC) ... & OP3		{ increment(OP3); }
