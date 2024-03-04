@@ -378,8 +378,8 @@ macro Pull2(op) {
 :LDS DATA16			is (op6_7=0x2 & op0_3=0xE) ... & DATA16 { SP = DATA16; resultFlags(SP); }
 :LDX DATA16			is (op6_7=0x3 & op0_3=0xE) ... & DATA16	{ IX = DATA16; resultFlags(IX); }
 
-# Stores
-:STA accReg, OP2	is (op0_3=0x7) ... & accReg ... & OP2	{ OP2 = accReg; resultFlags(OP2); }
+# Stores, set flags on the accumalator used to avoid multiple reads from volatile locations in decompile
+:STA accReg, OP2	is (op0_3=0x7) ... & accReg ... & OP2	{ OP2 = accReg; resultFlags(accReg); }
 :STD DATA16			is (op6_7=0x3 & op0_3=0xD) ... & DATA16	{ DATA16 = D; resultFlags(D); }
 :STS DATA16			is (op6_7=0x2 & op0_3=0xF) ... & DATA16 { DATA16 = SP; resultFlags(SP); }
 :STX DATA16			is (op6_7=0x3 & op0_3=0xF) ... & DATA16 { DATA16 = IX; resultFlags(IX); }
