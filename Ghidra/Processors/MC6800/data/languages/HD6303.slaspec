@@ -132,16 +132,14 @@ macro logicalShiftRight(op) {
 		N_flag = 0;
 }
 
-macro rotateRightWithCarry(op)
-{
+macro rotateRightWithCarry(op) {
 		local carryOut = C_flag << 7;
 		C_flag = op & 1;
 		op = (op s>> 1) | carryOut;
 		setNZFlags(op);
 }
 
-macro logicalShiftLeft(op)
-{
+macro logicalShiftLeft(op) {
 		local tmp = (op >> 7);
 		C_flag = tmp;
 		op = op << 1;
@@ -149,8 +147,7 @@ macro logicalShiftLeft(op)
 		setNZFlags(op);
 }
 
-macro rotateLeftWithCarry(op)
-{
+macro rotateLeftWithCarry(op) {
 		local carryIn = C_flag;
 		local tmp = (op >> 7);
 		C_flag = tmp;
@@ -159,15 +156,13 @@ macro rotateLeftWithCarry(op)
 		setNZFlags(op);
 }
 
-macro increment(op)
-{
+macro increment(op) {
 		V_flag = (op == 0x7F);
 		op = op + 1;
 		setNZFlags(op);
 }
 
-macro decrement(op)
-{
+macro decrement(op) {
 		V_flag = (op == 0x80);
 		op = op - 1;
 		setNZFlags(op);
