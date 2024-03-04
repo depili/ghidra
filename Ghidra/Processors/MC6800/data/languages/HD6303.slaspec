@@ -14,6 +14,8 @@ define register offset=0x80 size=1 [H_flag I_flag N_flag Z_flag V_flag C_flag];
 
 define pcodeop sleep;
 define pcodeop wait_irq;
+define pcodeop enable_interrupts;
+define pcodeop disable_interrupts;
 
 define token opbyte (8)
 	op		= (0,7)
@@ -347,8 +349,8 @@ macro Pull2(op) {
 :SEV				is (op=0x0B)					{ V_flag = 1; }
 :CLC				is (op=0x0C)					{ C_flag = 0; }
 :SEC				is (op=0x0D)					{ C_flag = 1; }
-:CLI				is (op=0x0E)					{ I_flag = 0; }
-:SEI				is (op=0x0F)					{ I_flag = 1; }
+:CLI				is (op=0x0E)					{ I_flag = 0; enable_interrupts(); }
+:SEI				is (op=0x0F)					{ I_flag = 1; disable_interrupts(); }
 
 # Increments
 :INC OP3			is (op0_3=0xC) ... & OP3		{ increment(OP3); }
