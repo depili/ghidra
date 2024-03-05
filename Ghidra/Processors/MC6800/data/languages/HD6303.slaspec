@@ -129,48 +129,58 @@ macro compareFlags(op1, op2) {
     C_flag = op1 < op2;
 }
 
-macro arithmeticShiftRight(op) {
-    C_flag = op & 1;
-    op = (op s>> 1);
-    setNZFlags(op);
+macro arithmeticShiftRight(reg) {
+    local tmp = reg;
+    C_flag = tmp & 1;
+    tmp = (tmp s>> 1);
+    setNZFlags(tmp);
+    reg = tmp;
 }
 
-macro arithmeticShiftLeft(op) {
-    C_flag = op >> 7;
-    op = op << 1;
-    Z_flag = (op == 0);
-    N_flag = (op s< 0);
+macro arithmeticShiftLeft(reg) {
+    local tmp = reg;
+    C_flag = tmp >> 7;
+    tmp = tmp << 1;
+    Z_flag = (tmp == 0);
+    N_flag = (tmp s< 0);
+    reg = tmp;
 }
 
-macro logicalShiftRight(op) {
-    C_flag = (op & 1) != 0;
-    op = op >> 1;
-    Z_flag = (op == 0);
+macro logicalShiftRight(reg) {
+    local tmp = reg;
+    C_flag = (tmp & 1) != 0;
+    tmp = tmp >> 1;
+    Z_flag = (tmp == 0);
     N_flag = 0;
+    reg = tmp;
 }
 
-macro rotateRightWithCarry(op) {
+macro rotateRightWithCarry(reg) {
+    local tmp = reg;
     local carryOut = C_flag << 7;
-    C_flag = op & 1;
-    op = (op s>> 1) | carryOut;
-    setNZFlags(op);
+    C_flag = tmp & 1;
+    tmp = (tmp s>> 1) | carryOut;
+    setNZFlags(tmp);
+    reg = tmp;
 }
 
-macro logicalShiftLeft(op) {
-    local tmp = (op >> 7);
-    C_flag = tmp;
-    op = op << 1;
-    V_flag = tmp ^ (op >> 7);
-    setNZFlags(op);
+macro logicalShiftLeft(reg) {
+    local tmp = reg;
+    C_flag = (tmp >> 7);
+    tmp = tmp << 1;
+    V_flag = C_flag ^ (tmp >> 7);
+    setNZFlags(tmp);
+    reg = tmp;
 }
 
-macro rotateLeftWithCarry(op) {
+macro rotateLeftWithCarry(reg) {
+    local tmp = reg;
     local carryIn = C_flag;
-    local tmp = (op >> 7);
-    C_flag = tmp;
-    op = (op << 1) | carryIn;
-    V_flag = tmp ^ (op >> 7);
-    setNZFlags(op);
+    C_flag = (tmp >> 7);
+    tmp = (tmp << 1) | carryIn;
+    V_flag = C_flag ^ (tmp >> 7);
+    setNZFlags(tmp);
+    reg = tmp;
 }
 
 macro increment(op) {
