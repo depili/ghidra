@@ -218,18 +218,20 @@ macro negate(op) {
 }
 
 macro Push1(op) {
-    SP = SP - 1;
     *:1 SP = op;
+    SP = SP - 1;
 }
 
 macro Push2(op) {
-    SP = SP - 2;
+    SP = SP - 1;
     *:2 SP = op;
+    SP = SP - 1;
 }
 
 macro PushRet() {
-    SP = SP - 2;
+    SP = SP - 1;
     *:2 SP = inst_next;
+    SP = SP - 1;
 }
 
 macro PushEntireState(){
@@ -244,14 +246,15 @@ macro PushEntireState(){
 
 # Pull 1 byte operand op1
 macro Pull1(op) {
-    op = *:1 SP;
     SP = SP + 1;
+    op = *:1 SP;
 }
 
 # Pull 2 byte operand op2
 macro Pull2(op) {
+    SP = SP + 1;
     op = *:2 SP;
-    SP = SP + 2;
+    SP = SP + 1;
 }
 
 # Addition
@@ -373,17 +376,17 @@ macro Pull2(op) {
 :DEX                is (op=0x09)                    { IX = IX - 1; Z_flag = (IX == 0); }
 
 # xor
-:EIM "#"imm8, m8    is (op=0x75); imm8; m8          { tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) ^ imm8; resultFlags(*:1 tmp); }
-:EIM "#"imm8, disp8 is (op=0x65); imm8; disp8       { disp8 = disp8 ^ imm8; resultFlags(disp8); }
-:EOR accReg, OP2    is (op0_3=0x8) ... & accReg ... & OP2   { accReg = accReg ^ OP2; resultFlags(accReg); }
+:EIM "#"imm8, m8    is (op=0x75); imm8; m8          { tmp:2 = zext(m8:1); res = (*:1 tmp) ^ imm8; resultFlags(res); *:1 tmp = res; }
+:EIM "#"imm8, disp8 is (op=0x65); imm8; disp8       { res = disp8 ^ imm8; resultFlags(res); disp8 = res; }
+:EOR accReg, OP2    is (op0_3=0x8) ... & accReg ... & OP2   { res = accReg ^ OP2; resultFlags(res); accReg = res; }
 # or
-:OIM "#"imm8, m8    is (op=0x72); imm8; m8          { tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) | imm8; resultFlags(*:1 tmp); }
-:OIM "#"imm8, disp8 is (op=0x62); imm8; disp8       { disp8 = disp8 | imm8; resultFlags(disp8); }
-:ORA accReg, OP2    is (op0_3=0xA) ... & accReg ... & OP2   { accReg = accReg | OP2; resultFlags(accReg); }
+:OIM "#"imm8, m8    is (op=0x72); imm8; m8          { tmp:2 = zext(m8:1); res = (*:1 tmp) | imm8; resultFlags(res); *:1 tmp = res; }
+:OIM "#"imm8, disp8 is (op=0x62); imm8; disp8       { tmp = disp8 | imm8; resultFlags(tmp); disp8 = tmp; }
+:ORA accReg, OP2    is (op0_3=0xA) ... & accReg ... & OP2   { tmp = accReg | OP2; resultFlags(tmp); accReg = tmp; }
 # and
-:AIM "#"imm8, m8    is (op=0x71); imm8; m8          { tmp:2 = zext(m8:1); *:1 tmp = (*:1 tmp) & imm8; resultFlags(*:1 tmp); }
-:AIM "#"imm8, disp8 is (op=0x61); imm8; disp8       { disp8 = disp8 & imm8; resultFlags(disp8); }
-:AND accReg, OP2    is (op0_3=0x4) ... & accReg ... & OP2   { accReg = accReg & OP2; resultFlags(accReg); }
+:AIM "#"imm8, m8    is (op=0x71); imm8; m8          { tmp:2 = zext(m8:1); res = (*:1 tmp) & imm8; resultFlags(res); *:1 tmp = res; }
+:AIM "#"imm8, disp8 is (op=0x61); imm8; disp8       { res = disp8 & imm8; resultFlags(res); disp8 = res; }
+:AND accReg, OP2    is (op0_3=0x4) ... & accReg ... & OP2   { res = accReg & OP2; resultFlags(res); accReg = res; }
 
 # Loads
 :LDA accReg, OP2    is (op0_3=0x6) ... & accReg ... & OP2 { accReg = OP2; resultFlags(accReg); }
