@@ -163,12 +163,6 @@ macro setResultFlags(result) {
 	$(Z_flag) = (result == 0);
 }
 
-macro setAddCarryFlags(op1,op2) {
-	$(CY_flag) = (carry(op1,zext($(CY_flag))) || carry(op2,op1 + zext($(CY_flag))));
-	local AFmask = -1 >> 4;
-	$(HC_flag) = (((op1 & AFmask) + (op2 & AFmask)) & (AFmask + 1)) != 0;
-}
-
 macro setAddFlags(op1,op2) {
 	local AFmask = -1 >> 4;
 	$(HC_flag) = (((op1 & AFmask) + (op2 & AFmask)) & (AFmask + 1)) != 0;
@@ -183,9 +177,13 @@ macro add(op1, op2) {
 
 # op1 = op1 + op2 + CY_flag
 macro addCarry(op1, op2) {
-    setAddFlags(op1, op2 + $(CY_flag));
-    op1 = op1 + op2 + $(CY_flag);
-    setResultFlags(op1);
+    local Ccopy = zext($(CY_flag));
+    local AFmask = -1 >> 4;
+    $(HC_flag) = (((op1 & AFmask) + (op2 & AFmask) + Ccopy) & (AFmask + 1)) != 0;
+    $(CY_flag) = carry(operand1, operand2);
+    local tempResult = operand1 + operand2;
+    $(CY_flag) = $(CY_flag) || carry(tempResult, Ccopy);
+    result = tempResult + Ccopy;
 }
 
 # op1 = op1 + op2, skip if no carry
